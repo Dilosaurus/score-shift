@@ -1,0 +1,3162 @@
+[
+  {
+    "number": 1,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Abmaj9",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "section": "Intro",
+    "forward": true,
+    "tempo": 104,
+    "words": "Kinda like “What’s Going On”",
+    "key": -4
+  },
+  {
+    "number": 2,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Bbm7",
+        "at": 0,
+        "conditional": false
+      }
+    ]
+  },
+  {
+    "number": 3,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Cm7",
+        "at": 0,
+        "conditional": false
+      }
+    ]
+  },
+  {
+    "number": 4,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dm",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Dm/G",
+        "at": 8,
+        "conditional": false
+      }
+    ],
+    "backward": true
+  },
+  {
+    "number": 5,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": "<"
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Abmaj9",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "section": "A",
+    "forward": true,
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ]
+    ],
+    "slurs": [
+      [
+        4,
+        5
+      ]
+    ],
+    "lyrics": [
+      [
+        "Look-",
+        "ing",
+        "in",
+        "",
+        "your",
+        "",
+        "eyes"
+      ],
+      [
+        "Look-",
+        "ing",
+        "at",
+        "",
+        "your",
+        "",
+        "hands"
+      ]
+    ]
+  },
+  {
+    "number": 6,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 8,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Bbm7",
+        "at": 0,
+        "conditional": false
+      }
+    ]
+  },
+  {
+    "number": 7,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": "<"
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Cm7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ]
+    ],
+    "slurs": [
+      [
+        4,
+        5
+      ]
+    ],
+    "lyrics": [
+      [
+        "Kind",
+        "of",
+        "hea-",
+        "",
+        "ven",
+        "",
+        "eyes"
+      ],
+      [
+        "Hands",
+        "can",
+        "un-",
+        "",
+        "der-",
+        "",
+        "stand"
+      ]
+    ]
+  },
+  {
+    "number": 8,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 8,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dm",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Dm/G",
+        "at": 8,
+        "conditional": false
+      }
+    ]
+  },
+  {
+    "number": 9,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": "<"
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Abmaj9",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ]
+    ],
+    "slurs": [
+      [
+        4,
+        5
+      ]
+    ],
+    "lyrics": [
+      [
+        "Clos-",
+        "ing",
+        "both",
+        "",
+        "my",
+        "",
+        "eyes"
+      ],
+      [
+        "Wait-",
+        "ing",
+        "for",
+        "",
+        "the",
+        "",
+        "chance"
+      ]
+    ]
+  },
+  {
+    "number": 10,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 8,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Bbm7",
+        "at": 0,
+        "conditional": false
+      }
+    ]
+  },
+  {
+    "number": 11,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": "<"
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Cm7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ]
+    ],
+    "slurs": [
+      [
+        4,
+        5
+      ]
+    ],
+    "lyrics": [
+      [
+        "Wait-",
+        "ing",
+        "for",
+        "",
+        "sur-",
+        "",
+        "prise"
+      ],
+      [
+        "Just",
+        "to",
+        "hold",
+        "",
+        "your",
+        "",
+        "hand"
+      ]
+    ]
+  },
+  {
+    "number": 12,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "G4",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dm7",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Dm/G",
+        "at": 8,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        4,
+        5,
+        6
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "",
+        "",
+        "To",
+        "see",
+        "the",
+        "heav-"
+      ],
+      [
+        "",
+        "",
+        "",
+        "A",
+        "touch",
+        "of",
+        "rain-"
+      ]
+    ]
+  },
+  {
+    "number": 13,
+    "notes": [
+      {
+        "p": "Eb5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "Eb5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "F5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "F5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "C5",
+        "d": 2,
+        "tie": "<"
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Ab",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "section": "B",
+    "segno": true,
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "en",
+        "in",
+        "",
+        "your",
+        "eyes",
+        "",
+        "is",
+        "not"
+      ],
+      [
+        "",
+        "And",
+        "sun-",
+        "",
+        "shine",
+        "made",
+        "",
+        "the",
+        "flow-"
+      ]
+    ]
+  },
+  {
+    "number": 14,
+    "notes": [
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": "<"
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 3,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 2,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Ebmaj7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "so",
+        "",
+        "far",
+        "",
+        "",
+        "’cos"
+      ],
+      [
+        "",
+        "er",
+        "",
+        "grow",
+        "",
+        "",
+        "in-"
+      ]
+    ]
+  },
+  {
+    "number": 15,
+    "notes": [
+      {
+        "p": "Db5",
+        "d": 4,
+        "tie": ">"
+      },
+      {
+        "p": "Db5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Db5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Db5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Cb5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dbm7",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Gb13",
+        "at": 7,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6
+      ],
+      [
+        7,
+        8,
+        9
+      ]
+    ],
+    "slurs": [
+      [
+        6,
+        7
+      ]
+    ],
+    "lyrics": [
+      [
+        "I’m",
+        "not",
+        "a-",
+        "fraid",
+        "",
+        "to",
+        "try",
+        "",
+        "and",
+        "go"
+      ],
+      [
+        "to",
+        "",
+        "a",
+        "love-",
+        "",
+        "ly",
+        "smile",
+        "",
+        "that’s",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 16,
+    "notes": [
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Db5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Db5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Gb4",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Cb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Db5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Bmaj9",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        0,
+        1,
+        2
+      ],
+      [
+        6,
+        7,
+        8
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "",
+        "it",
+        "",
+        "",
+        "To",
+        "know",
+        "the",
+        "love"
+      ],
+      [
+        "",
+        "",
+        "ing",
+        "",
+        "",
+        "And",
+        "it’s",
+        "so",
+        "clear"
+      ]
+    ]
+  },
+  {
+    "number": 17,
+    "notes": [
+      {
+        "p": "D5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "D5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "E5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "E5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Cb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Bm7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6,
+        7,
+        8
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "And",
+        "the",
+        "beau-",
+        "",
+        "ty",
+        "nev-",
+        "er",
+        "known"
+      ],
+      [
+        "",
+        "To",
+        "",
+        "me",
+        "",
+        "that",
+        "here’s",
+        "a",
+        "dream"
+      ]
+    ]
+  },
+  {
+    "number": 18,
+    "notes": [
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": "<"
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 3,
+        "tie": ">"
+      },
+      {
+        "p": "D5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "E11",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "E7",
+        "at": 8,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "be-",
+        "",
+        "fore",
+        "",
+        "",
+        "I’ll"
+      ],
+      [
+        "",
+        "come",
+        "",
+        "true",
+        "",
+        "",
+        "There’s"
+      ]
+    ]
+  },
+  {
+    "number": 19,
+    "notes": [
+      {
+        "p": "D5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "D5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "E5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "E5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Cb5",
+        "d": 1,
+        "tie": ">"
+      },
+      {
+        "p": "Cb5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Cb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dm(add9)",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6
+      ],
+      [
+        7,
+        8,
+        9
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "leave",
+        "it",
+        "up",
+        "",
+        "to",
+        "you",
+        "",
+        "to",
+        "show"
+      ],
+      [
+        "",
+        "no",
+        "way",
+        "that",
+        "",
+        "I’ll",
+        "be",
+        "",
+        "los-",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 20,
+    "notes": [
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": "<"
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "Gb4",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "G9sus4",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "tocoda": true,
+    "beams": [
+      [
+        0,
+        1
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "it",
+        "",
+        "",
+        "And"
+      ],
+      [
+        "",
+        "ing",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 21,
+    "notes": [
+      {
+        "p": "Gb5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "F5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Gb5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "F5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "F5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Eb5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Gb5",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Cm",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "G7b13/B",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "section": "C",
+    "beams": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "slurs": [
+      [
+        1,
+        2
+      ]
+    ],
+    "lyrics": [
+      [
+        "Gold-",
+        "en",
+        "",
+        "la-",
+        "",
+        "dy,",
+        "",
+        "Gold-"
+      ]
+    ]
+  },
+  {
+    "number": 22,
+    "notes": [
+      {
+        "p": "Gb5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "F5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Eb5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "F5",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Eb/Bb",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Am7b5",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "en",
+        "la-",
+        "",
+        "dy,",
+        "I’d"
+      ]
+    ]
+  },
+  {
+    "number": 23,
+    "notes": [
+      {
+        "p": "F5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "C5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Ab4",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dbmaj7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ]
+    ],
+    "lyrics": [
+      [
+        "Like",
+        "to",
+        "",
+        "go",
+        "there",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 24,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 8,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 8,
+        "tie": ""
+      }
+    ],
+    "chords": []
+  },
+  {
+    "number": 25,
+    "notes": [
+      {
+        "p": "Gb5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "F5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Gb5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "F5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "F5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Gb5",
+        "d": 2,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Cm",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "G7b13/B",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "slurs": [
+      [
+        1,
+        2
+      ]
+    ],
+    "lyrics": [
+      [
+        "Gold-",
+        "en",
+        "",
+        "la-",
+        "",
+        "dy,",
+        "",
+        "Gold-"
+      ]
+    ]
+  },
+  {
+    "number": 26,
+    "notes": [
+      {
+        "p": "Gb5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "F5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Eb5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "F5",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Eb/Bb",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Am7b5",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "en",
+        "la-",
+        "",
+        "dy,",
+        "I’d"
+      ]
+    ]
+  },
+  {
+    "number": 27,
+    "notes": [
+      {
+        "p": "F5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "C5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Ab4",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dbmaj7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        5
+      ],
+      [
+        6,
+        7,
+        8
+      ]
+    ],
+    "lyrics": [
+      [
+        "Like",
+        "to",
+        "",
+        "go",
+        "there",
+        "",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 28,
+    "notes": [
+      {
+        "p": "C5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Ab4",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Bb4",
+        "d": 1,
+        "tie": ""
+      }
+    ],
+    "chords": [],
+    "beams": [
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "",
+        "Take",
+        "me",
+        "",
+        "right",
+        "a-"
+      ]
+    ]
+  },
+  {
+    "number": 29,
+    "notes": [
+      {
+        "p": "B4",
+        "d": 12,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Cmaj7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "lyrics": [
+      [
+        "way.",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 30,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [],
+    "words": "Keep groovin’…"
+  },
+  {
+    "number": 31,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Bbm(add9)",
+        "at": 0,
+        "conditional": false
+      }
+    ]
+  },
+  {
+    "number": 32,
+    "notes": [
+      {
+        "p": "x",
+        "d": 6,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Eb9sus4",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "ending": "1",
+    "backward": true
+  },
+  {
+    "number": 33,
+    "notes": [
+      {
+        "p": "x",
+        "d": 6,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Eb9sus4",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "ending": "2"
+  },
+  {
+    "number": 34,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Abmaj9",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "section": "D",
+    "forward": true,
+    "words": "Instrumental solo section"
+  },
+  {
+    "number": 35,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Bbm(add9)",
+        "at": 0,
+        "conditional": false
+      }
+    ]
+  },
+  {
+    "number": 36,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Cm7",
+        "at": 0,
+        "conditional": false
+      }
+    ]
+  },
+  {
+    "number": 37,
+    "notes": [
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "x",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Gb4",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dm",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Dm/G",
+        "at": 8,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        4,
+        5,
+        6
+      ]
+    ],
+    "backward": true,
+    "ds": true,
+    "lyrics": [
+      [
+        "",
+        "",
+        "",
+        "A",
+        "touch",
+        "of",
+        "rain-"
+      ]
+    ]
+  },
+  {
+    "number": 38,
+    "notes": [
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": "<"
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "D5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "G4",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "G9sus4",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Ab9sus4",
+        "at": 12,
+        "conditional": false
+      }
+    ],
+    "coda": true,
+    "beams": [
+      [
+        0,
+        1
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "it",
+        "",
+        "",
+        "And"
+      ],
+      [
+        "",
+        "ing",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 39,
+    "notes": [
+      {
+        "p": "Ab5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "Gb5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Ab5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Gb5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "Gb5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "E5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Ab5",
+        "d": 2,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dbm",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Ab7b13/C",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "forward": true,
+    "beams": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "slurs": [
+      [
+        1,
+        2
+      ]
+    ],
+    "lyrics": [
+      [
+        "Gold-",
+        "en",
+        "",
+        "la-",
+        "",
+        "dy",
+        "",
+        "Gold-"
+      ]
+    ]
+  },
+  {
+    "number": 40,
+    "notes": [
+      {
+        "p": "Ab5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "Gb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "E5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "E5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "E5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Gb5",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "E/B",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Bbm7b5",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "en",
+        "la-",
+        "",
+        "dy",
+        "I’d"
+      ]
+    ]
+  },
+  {
+    "number": 41,
+    "notes": [
+      {
+        "p": "F#5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C#5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "C#5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "C#5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "C#5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "B4",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "B4",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "A4",
+        "d": 2,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dmaj7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6,
+        7
+      ]
+    ],
+    "slur_out": 7,
+    "lyrics": [
+      [
+        "Like",
+        "to",
+        "",
+        "go",
+        "there",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 42,
+    "notes": [
+      {
+        "p": "C#5",
+        "d": 12,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "A9sus4",
+        "at": 0,
+        "conditional": true
+      }
+    ],
+    "backward": true,
+    "slur_in": 0
+  },
+  {
+    "number": 43,
+    "notes": [
+      {
+        "p": "A5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "G5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "A5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "G5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "G5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "F5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "A5",
+        "d": 2,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Dm",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "A7b13/C#",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "section": "E",
+    "key": -1,
+    "forward": true,
+    "beams": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "slurs": [
+      [
+        1,
+        2
+      ]
+    ],
+    "lyrics": [
+      [
+        "Gold-",
+        "en",
+        "",
+        "la-",
+        "",
+        "dy",
+        "",
+        "Gold-"
+      ]
+    ]
+  },
+  {
+    "number": 44,
+    "notes": [
+      {
+        "p": "A5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "G5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "F5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "F5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "F5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "G5",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "F/C",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Bm7b5",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "en",
+        "la-",
+        "",
+        "dy",
+        "I’d"
+      ]
+    ]
+  },
+  {
+    "number": 45,
+    "notes": [
+      {
+        "p": "G5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "D5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "D5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "C5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "D5",
+        "d": 2,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Ebmaj7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6,
+        7
+      ]
+    ],
+    "lyrics": [
+      [
+        "Like",
+        "to",
+        "",
+        "go",
+        "there",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 46,
+    "notes": [
+      {
+        "p": "D5",
+        "d": 12,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Bb9sus4",
+        "at": 0,
+        "conditional": true
+      }
+    ],
+    "backward": true
+  },
+  {
+    "number": 47,
+    "notes": [
+      {
+        "p": "Bb5",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "Ab5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Bb5",
+        "d": 1,
+        "tie": ""
+      },
+      {
+        "p": "Ab5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "Ab5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Gb5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "r",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Bb5",
+        "d": 2,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Ebm",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Bb7b13/D",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "key": -6,
+    "forward": true,
+    "beams": [
+      [
+        1,
+        2,
+        3
+      ],
+      [
+        4,
+        5
+      ]
+    ],
+    "slurs": [
+      [
+        1,
+        2
+      ]
+    ],
+    "lyrics": [
+      [
+        "Gold-",
+        "en",
+        "",
+        "la-",
+        "",
+        "dy",
+        "",
+        "Gold-"
+      ]
+    ]
+  },
+  {
+    "number": 48,
+    "notes": [
+      {
+        "p": "Bb5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "Ab5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Gb5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "Gb5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Gb5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Ab5",
+        "d": 4,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Gb/Db",
+        "at": 0,
+        "conditional": false
+      },
+      {
+        "symbol": "Cm7b5",
+        "at": 6,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        1,
+        2
+      ],
+      [
+        3,
+        4
+      ]
+    ],
+    "lyrics": [
+      [
+        "",
+        "en",
+        "la-",
+        "",
+        "dy",
+        "I’d"
+      ]
+    ]
+  },
+  {
+    "number": 49,
+    "notes": [
+      {
+        "p": "Ab5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Eb5",
+        "d": 3,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Db5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Db5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": ">"
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Emaj7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "beams": [
+      [
+        0,
+        1
+      ],
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6,
+        7
+      ]
+    ],
+    "lyrics": [
+      [
+        "Like",
+        "to",
+        "",
+        "go",
+        "there",
+        "",
+        "",
+        ""
+      ]
+    ]
+  },
+  {
+    "number": 50,
+    "notes": [
+      {
+        "p": "Eb5",
+        "d": 4,
+        "tie": "<"
+      },
+      {
+        "p": "r",
+        "d": 4,
+        "tie": ""
+      },
+      {
+        "p": "Gb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Eb5",
+        "d": 2,
+        "tie": ">"
+      },
+      {
+        "p": "Eb5",
+        "d": 1,
+        "tie": "<"
+      },
+      {
+        "p": "Cb5",
+        "d": 2,
+        "tie": ""
+      },
+      {
+        "p": "Db5",
+        "d": 1,
+        "tie": ""
+      }
+    ],
+    "chords": [],
+    "beams": [
+      [
+        2,
+        3
+      ],
+      [
+        4,
+        5,
+        6
+      ]
+    ],
+    "backward": true,
+    "words_below": "Ritard last time…",
+    "lyrics": [
+      [
+        "",
+        "",
+        "Take",
+        "me",
+        "",
+        "right",
+        "a-"
+      ]
+    ]
+  },
+  {
+    "number": 51,
+    "notes": [
+      {
+        "p": "x",
+        "d": 16,
+        "tie": ""
+      }
+    ],
+    "chords": [
+      {
+        "symbol": "Ebmaj7",
+        "at": 0,
+        "conditional": false
+      }
+    ],
+    "final": true,
+    "fermata": 0
+  }
+]

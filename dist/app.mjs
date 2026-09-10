@@ -52,13 +52,25 @@ async function openVisualExcerpt(){
  if(!s){const response=await fetch('/samples/golden-lady-visual-excerpt.musicxml');if(!response.ok)throw Error('The AI excerpt could not be loaded.');const xml=await response.text(),info=scoreInfo(parseScore(xml));s={id,name:'Golden Lady · AI excerpt',kind:'xml',xml,info,semitones:0,targetFifths:info.fifths,reviewed:false,visualDraft:true};state.scores.push(s);await persist(s);}
  state.active=s.id;state.view='score';renderLibrary();await render();
 }
+async function openFullTranscription(){
+ const id='golden-lady-full-v1';
+ let s=state.scores.find(score=>score.id===id);
+ if(!s||(!s.userEdited&&(s.sampleRevision||1)<2)){
+  const [response,pdf]=await Promise.all([fetch('/samples/golden-lady-full.musicxml'),fetch('/samples/golden-lady.pdf')]);
+  if(!response.ok||!pdf.ok)throw Error('The full transcription could not be loaded.');
+  const xml=await response.text(),info=scoreInfo(parseScore(xml));
+  const entry={id,name:'Golden Lady · Full transcription',kind:'xml',xml,info,bytes:new Uint8Array(await pdf.arrayBuffer()),pages:2,semitones:0,targetFifths:info.fifths,visualFull:true,reviewed:true,sampleRevision:2};
+  if(s)Object.assign(s,entry);else{s=entry;state.scores.push(s);}await persist(s);
+ }
+ state.active=s.id;state.view='score';renderLibrary();await render();
+}
 function renderLibrary(){
  $('#library-list').replaceChildren();$('#score-count').textContent=state.scores.length;
  for(const s of state.scores){const button=document.createElement('button');button.className='score-item'+(s.id===state.active?' selected':'');button.setAttribute('aria-pressed',String(s.id===state.active));const icon=document.createElement('span');icon.className='file-icon';icon.textContent='♫';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=s.name;sub.textContent=s.xml?(s.recognized&&!s.reviewed?'Needs review':'Editable score'):`PDF · ${s.pages} pages`;text.append(title,sub);button.append(icon,text);button.onclick=safeAction(async()=>{state.active=s.id;state.view=s.bytes?'original':'score';renderLibrary();await render();});$('#library-list').append(button);}
 }
 function renderControls(){
  const s=active();if(!s)return;
- $('#score-title').textContent=s.name;$('#score-subtitle').textContent=s.visualDraft?'AI visual transcription · A section, four-measure draft':s.recognized?'Recognized from PDF · review required':s.xml?'MusicXML · editable notation':s.name==='Golden Lady'?'Stevie Wonder / Rhythm chart':'Imported PDF';
+ $('#score-title').textContent=s.name;$('#score-subtitle').textContent=s.visualFull?'Visual transcription · Both PDF pages · 51 measures':s.visualDraft?'AI visual transcription · A section, four-measure draft':s.recognized?'Recognized from PDF · review required':s.xml?'MusicXML · editable notation':s.name==='Golden Lady'?'Stevie Wonder / Rhythm chart':'Imported PDF';
  const editable=!!s.xml;$('#original-key').textContent=editable?s.info.keyName:'Awaiting recognition';
  $('#target-key').replaceChildren();if(editable){for(const [fifths,names] of Object.entries(KEY_NAMES).sort((a,b)=>Number(a[0])-Number(b[0]))){const option=document.createElement('option');option.value=fifths;option.textContent=names[s.info.minor?1:0]+' '+(s.info.minor?'minor':'major');$('#target-key').append(option);}$('#target-key').value=s.targetFifths??s.info.fifths;}else{const o=document.createElement('option');o.textContent='Choose a key';$('#target-key').append(o);}
  for(const selector of ['#target-key','#step-down','#step-up','#reset'])$(selector).disabled=!editable;
@@ -70,12 +82,13 @@ function renderControls(){
  $('#attach-xml').textContent=editable?'Replace editable MusicXML':'Import matching MusicXML';
  $('#import-title').textContent=s.job?'Reading the music…':editable?s.recognized?'Review required':'Score ready':s.scanned?'Scan imported':'PDF imported';
  $('#import-description').textContent=s.job?s.job.stage:editable?`${s.info.notes} notes · ${s.info.chords} chord symbols · ${s.info.measures} measures${s.recognized?'. Check notes, rhythms, and missing chords against the original.':'. Ready to transpose.'}`:'All pages are preserved. Music recognition turns the printed notes into an editable score.';
- $('#recognition-caption').textContent=s.recognized?`${s.warnings||0} engine warnings. Recognition is a draft, not a verified transcription.`:'Recognition runs on this computer. Handwritten charts need careful review.';
+ $('#recognition-caption').textContent=s.visualFull?'Transcribed visually from the complete scan. Includes lyrics, repeats, endings, and key changes.':s.recognized?`${s.warnings||0} engine warnings. Recognition is a draft, not a verified transcription.`:'Recognition runs on this computer. Handwritten charts need careful review.';
  $('#review-actions').hidden=!editable;$('#reviewed').checked=!!s.reviewed;
  $('#review-actions .review-check').hidden=!s.recognized;
  $('#document-status').textContent=state.view==='original'?`${s.pages} page${s.pages===1?'':'s'} · Original PDF · unchanged`:`${s.info?.measures||0} measures · ${state.view==='compare'?'Compare scores':s.semitones?'Transposed notation':'Original notation'}`;
  if(s.job)notice('Recognizing the scan locally. This can take a few minutes. You can keep viewing the original.');
  else if(s.recognized&&!s.reviewed)notice(s.info.chords===0?'No chord symbols were recovered. Add missing chords in Review notes & chords, and check the recognized melody before exporting.':'Recognition needs review. Check pitches, rhythms, key signatures, repeats, and missing chord symbols before exporting.',true);
+ else if(s.visualFull)notice('Complete visual transcription. Notes and chords transpose together; Compare shows the supplied scan alongside it.');
  else if(s.visualDraft)notice('AI-transcribed four-measure excerpt, not the full chart. Check against the original before using it in performance.');
  else if(editable)notice(state.view==='original'&&s.semitones?'The original PDF is unchanged. Open Editable score to see the transposition.':`Notes and chord symbols transpose together. ${s.semitones?'The editable score is in your selected key.':'Choose a key or change the semitone interval.'}`);
  else notice('Your original, preserved. Recognize the scan or import matching MusicXML to start transposing.');
@@ -90,10 +103,17 @@ async function render(){
  $('#zoom-label').textContent=state.zoom+'%';
 }
 function currentXML(s=active()){return transposeScore(s.xml,s.semitones||0,s.targetFifths??s.info.fifths);}
+function engravingXML(xml){
+ // Verovio currently prints hidden degrees in addition to the custom chord label.
+ // Respect their display flag in this render-only copy; exports retain the harmony data.
+ const doc=parseScore(xml);
+ for(const degree of doc.querySelectorAll('harmony > degree[print-object="no"]'))degree.remove();
+ return new XMLSerializer().serializeToString(doc);
+}
 async function renderNotation(s,epoch=state.render){
  const vrv=await toolkit();if(epoch!==state.render)return;
- vrv.resetOptions();vrv.setOptions({inputFrom:'xml',pageWidth:2100,pageHeight:2970,scale:42,adjustPageHeight:true,breaks:'auto',header:'auto',footer:'none'});
- if(!vrv.loadData(currentXML(s)))throw Error('The recognized notation could not be engraved. Review or replace the MusicXML file.');
+ vrv.resetOptions();vrv.setOptions({inputFrom:'xml',pageWidth:2100,pageHeight:2970,scale:42,adjustPageHeight:true,breaks:s.visualFull?'encoded':'auto',header:'auto',footer:'none'});
+ if(!vrv.loadData(engravingXML(currentXML(s))))throw Error('The recognized notation could not be engraved. Review or replace the MusicXML file.');
  const pages=vrv.getPageCount();if(!pages)throw Error('No notation pages were produced.');
  $('#notation-pages').replaceChildren();for(let i=1;i<=pages;i++){const paper=document.createElement('div');paper.className='paper';paper.style.width=state.zoom+'%';paper.innerHTML=DOMPurify.sanitize(vrv.renderToSVG(i),{USE_PROFILES:{svg:true,svgFilters:true},ADD_TAGS:['use'],ADD_ATTR:['viewBox','xlink:href']});paper.setAttribute('aria-label',`${s.name}, editable page ${i}`);$('#notation-pages').append(paper);}
 }
@@ -142,10 +162,11 @@ async function saveReview(){
   for(const input of all('#review-editor input[data-add-harmony]')){const mi=Number(input.dataset.addHarmony);for(const entry of input.value.split(',').map(s=>s.trim()).filter(Boolean)){const [symbol,beat='1']=entry.split('@');addHarmony(reviewDoc,measures[mi],symbol,Number(beat),Number(input.closest('.review-row').dataset.divisions));}}
   const fifth=reviewDoc.querySelector('key fifths');if(fifth)fifth.textContent=$('#review-key').value;xml=new XMLSerializer().serializeToString(reviewDoc);
  }
- s.xml=xml;s.info=scoreInfo(parseScore(xml));s.semitones=0;s.targetFifths=s.info.fifths;s.reviewed=!s.recognized;await persist(s);$('#review-dialog').close();renderLibrary();await render();toast('Corrections saved at the original pitch.');
+ s.xml=xml;s.info=scoreInfo(parseScore(xml));s.semitones=0;s.targetFifths=s.info.fifths;s.reviewed=!s.recognized;s.userEdited=true;await persist(s);$('#review-dialog').close();renderLibrary();await render();toast('Corrections saved at the original pitch.');
 }
 all('#import-top,#import-side').forEach(b=>b.onclick=()=>$('#file-input').click());
 $('#open-excerpt').onclick=safeAction(openVisualExcerpt);
+$('#open-full').onclick=safeAction(openFullTranscription);
 $('#file-input').onchange=safeAction(async e=>{for(const f of e.target.files)await importFile(f);e.target.value='';});
 $('#xml-input').onchange=safeAction(async e=>{await importFile(e.target.files[0],true);e.target.value='';});
 $('#attach-xml').onclick=()=>$('#xml-input').click();
@@ -164,7 +185,8 @@ async function init(){
  state.scores=await savedScores();
  if(!state.scores.length){const response=await fetch('/samples/golden-lady.pdf');if(!response.ok)throw Error('The sample PDF could not be loaded. Import a PDF to begin.');const s={id:'golden-lady-sample',name:'Golden Lady',kind:'pdf',bytes:new Uint8Array(await response.arrayBuffer()),pages:2,scanned:true,reviewed:false,semitones:0};state.scores=[s];await persist(s);}
  state.active=state.scores[0].id;state.view=active().bytes?'original':'score';
- if(new URLSearchParams(location.search).get('score')==='ai-excerpt')await openVisualExcerpt();else{renderLibrary();await render();}
+ const requestedScore=new URLSearchParams(location.search).get('score');
+ if(requestedScore==='golden-lady-full')await openFullTranscription();else if(requestedScore==='ai-excerpt')await openVisualExcerpt();else{renderLibrary();await render();}
  $('#engine-status').textContent='Saved on this device';
  if(document.modelContext?.registerTool){try{document.modelContext.registerTool({name:'transpose_active_score',title:'Transpose active score',description:'Change notes and chord symbols of the active editable score by semitones. Does not export or modify the original PDF.',inputSchema:{type:'object',properties:{semitones:{type:'integer',minimum:-24,maximum:24}},required:['semitones'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:async input=>{if(!input||Object.keys(input).some(k=>k!=='semitones'))throw Error('Invalid input');await setTranspose(input.semitones);return {title:active().name,semitones:active().semitones,targetKey:$('#target-key').selectedOptions[0].textContent};}});}catch(e){console.warn('WebMCP unavailable',e);}}
 }

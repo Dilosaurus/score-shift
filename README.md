@@ -2,11 +2,17 @@
 
 Sheet-music workspace with faithful multipage PDF import, local optical music recognition, MusicXML transposition, original/score comparison, correction tools, and PDF/MusicXML export.
 
+## Complete visual transcription
+
+Choose **Open full transcription**, or open http://127.0.0.1:5173/?score=golden-lady-full. Both supplied PDF pages have been transcribed visually into 51 written measures, with melody, 64 chord symbols, lyrics, repeats, endings, and modulations. This score was authored directly from the scan, independently of the optional OCR workflow below.
+
+The editable file is `output/golden-lady-full.musicxml`; the source map and editorial details are in `output/golden-lady-transcription-notes.md`. **Compare** displays the original PDF alongside the complete score. Two one-note tie fragments at the D.S./Coda jump are encoded in MusicXML but omitted by the current engraver. `transcribe_golden_lady.py` contains the measure-by-measure transcription data and regenerates the output files.
+
 ## Open the app
 
 Run `Start ScoreShift.ps1`, then open http://127.0.0.1:5173. Node.js must be installed. The app and recognition engine have been prepared on this computer. The server listens only on loopback and does not start with Windows.
 
-The private hosted interface works without a local server for viewing PDFs and transposing MusicXML. Recognizing a new PDF requires this computer's local server to be running; the browser may request local-network access. Recognition is not hosted in the cloud.
+The interface can be hosted as static files for viewing PDFs and transposing MusicXML; this revision is being used locally. Recognizing a new PDF requires this computer's local server to be running. Recognition is not hosted in the cloud.
 
 ## Workflow
 
