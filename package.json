@@ -1,0 +1,1 @@
+{"name":"score-shift","version":"1.0.0","private":true,"type":"module","scripts":{"start":"node server.mjs","test":"node --test tests/music.test.mjs"},"dependencies":{"@xmldom/xmldom":"0.9.12","dompurify":"3.4.15","fflate":"0.8.3","pdfjs-dist":"6.3.289","verovio":"6.3.0"}}
