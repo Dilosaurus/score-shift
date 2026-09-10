@@ -6,6 +6,7 @@ import createVerovioModule from 'verovio/wasm';
 import {VerovioToolkit} from 'verovio/esm';
 import {parseChord,addHarmony} from '../dist/chords.mjs';
 import {readFileSync} from 'node:fs';
+import {engravingOptions,formatMusicXML,formatNotationSVG} from '../dist/engraving.mjs';
 const fixture=`<?xml version="1.0" encoding="utf-8"?><score-partwise version="4.0"><work><work-title>Transposition verification</work-title></work><part-list><score-part id="P1"><part-name>Melody</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>4</divisions><key><fifths>-3</fifths><mode>major</mode></key><time><beats>4</beats><beat-type>4</beat-type></time><clef><sign>G</sign><line>2</line></clef></attributes><harmony><root><root-step>E</root-step><root-alter>-1</root-alter></root><kind>major-seventh</kind><bass><bass-step>B</bass-step><bass-alter>-1</bass-alter></bass></harmony><note><pitch><step>E</step><alter>-1</alter><octave>4</octave></pitch><duration>4</duration><type>quarter</type><lyric><text>Golden</text></lyric></note><note><pitch><step>B</step><alter>-1</alter><octave>4</octave></pitch><duration>4</duration><type>quarter</type></note><note><pitch><step>D</step><octave>5</octave></pitch><duration>8</duration><type>half</type><tie type="start"/><notations><tied type="start"/></notations></note></measure><measure number="2"><note><pitch><step>D</step><octave>5</octave></pitch><duration>16</duration><type>whole</type><tie type="stop"/><notations><tied type="stop"/></notations></note><barline location="right"><bar-style>light-heavy</bar-style></barline></measure></part></score-partwise>`;
 const parse=x=>parseScore(x,DOMParser),trans=(x,n,f)=>transposeScore(x,n,f,DOMParser,XMLSerializer);
 const els=(d,n)=>[...d.getElementsByTagName(n)],txt=(d,n)=>els(d,n).map(x=>x.textContent);
@@ -36,5 +37,25 @@ test('complete Golden Lady score retains every bar, chord, and modulation when t
   for(const name of ['root','bass'])assert.deepEqual(els(shifted,name).map(p=>pc(p,name+'-')),els(original,name).map(p=>(pc(p,name+'-')+n+12)%12));
   for(const tag of ['duration','kind','offset','degree','lyric','repeat','ending','tied','coda','segno'])assert.deepEqual(els(shifted,tag).map(e=>e.toString()),els(original,tag).map(e=>e.toString()),tag);
  }
+});
+
+test('standard notation keeps letter pages and six fixed staff rows across keys',async()=>{
+ const xml=readFileSync(new URL('../dist/samples/golden-lady-full.musicxml',import.meta.url),'utf8');
+ const vrv=new VerovioToolkit(await createVerovioModule());
+ const byClass=(root,tag,c)=>els(root,tag).filter(e=>(' '+e.getAttribute('class')+' ').includes(' '+c+' '));
+ for(const n of [-2,0,1,2,7]){
+  const formatted=formatMusicXML(trans(xml,n),DOMParser,XMLSerializer),d=parse(formatted);
+  assert.equal(els(d,'word-font')[0].getAttribute('font-family'),'Arial');assert.equal(els(d,'lyric-font')[0].getAttribute('font-family'),'Arial');
+  assert.deepEqual(els(d,'pitch').map(midi),els(parse(xml),'pitch').map(p=>midi(p)+n));
+  vrv.resetOptions();vrv.setOptions({...engravingOptions,breaks:'encoded'});assert.ok(vrv.loadData(formatted));assert.equal(vrv.getPageCount(),2);
+  for(let page=1;page<=2;page++){
+   const svg=new DOMParser().parseFromString(formatNotationSVG(vrv.renderToSVG(page),{fixedSystems:true,page,pageCount:2},DOMParser,XMLSerializer),'image/svg+xml');
+   assert.equal(svg.documentElement.getAttribute('width'),'1080px');assert.equal(svg.documentElement.getAttribute('height'),'1397px');
+   const systems=byClass(svg,'g','system');assert.equal(systems.length,6);
+   systems.forEach((system,i)=>{const staff=byClass(system,'g','staff')[0],y=Number(els(staff,'path')[0].getAttribute('d').match(/^M\s*[\d.-]+[ ,]+([\d.-]+)/)[1]),shift=Number(system.getAttribute('transform').match(/translate\(0 ([\d.-]+)\)/)[1]);assert.equal(y+shift,2800+i*4100);});
+   for(const text of els(svg,'text'))assert.equal(text.getAttribute('font-family'),'Arial, sans-serif');
+  }
+ }
+ vrv.destroy();
 });
 

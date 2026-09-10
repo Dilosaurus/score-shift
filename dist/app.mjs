@@ -3,9 +3,10 @@ import {unzipSync,strFromU8} from './vendor/fflate.mjs';
 import DOMPurify from './vendor/purify.es.mjs';
 import {parseScore,scoreInfo,transposeScore,chooseFifths,KEY_NAMES,mod} from './music.mjs';
 import {chordKinds,addHarmony} from './chords.mjs';
+import {engravingOptions,formatMusicXML,formatNotationSVG} from './engraving.mjs';
 pdfjs.GlobalWorkerOptions.workerSrc='/vendor/pdf.worker.mjs';
 const $=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];
-const state={scores:[],active:null,view:'original',zoom:100,render:0};
+const state={scores:[],active:null,view:'original',zoom:100,render:0,page:1,fit:'width'};
 const active=()=>state.scores.find(s=>s.id===state.active);
 let enginePromise,dbPromise,toastTimer;
 const apiBase=['127.0.0.1','localhost'].includes(location.hostname)?'':'http://127.0.0.1:5173';
@@ -44,7 +45,7 @@ async function importFile(file,attach=false){
  if(!s)throw Error('Import a PDF first.');
  if(isPdf){s.bytes=bytes;s.kind='pdf';s.reviewed=false;await loadPdf(s);let text='';for(let i=1;i<=s.pages;i++)text+=(await(await s.pdf.getPage(i)).getTextContent()).items.map(t=>t.str||'').join(' ');s.scanned=text.trim().length<20;}
  else {const xml=unpackScore(bytes,file.name),info=scoreInfo(parseScore(xml));s.xml=xml;s.info=info;s.targetFifths=info.fifths;s.semitones=0;s.kind=s.kind||'xml';if(!attach&&info.title!=='Imported score')s.name=info.title;s.reviewed=!s.recognized;}
- if(!attach)state.scores.push(s);state.active=s.id;state.view=isPdf?'original':s.bytes?'compare':'score';await persist(s);renderLibrary();await render();toast(isPdf?`${s.pages} PDF pages imported without changing the original.`:'Editable notes and chord symbols imported.');
+ if(!attach)state.scores.push(s);closeDialogs();state.page=1;state.active=s.id;state.view=isPdf?'original':s.bytes?'compare':'score';await persist(s);renderLibrary();await render();toast(isPdf?`${s.pages} PDF pages imported without changing the original.`:'Editable notes and chord symbols imported.');
 }
 async function openVisualExcerpt(){
  const id='golden-lady-visual-excerpt';
@@ -66,12 +67,15 @@ async function openFullTranscription(){
 }
 function renderLibrary(){
  $('#library-list').replaceChildren();$('#score-count').textContent=state.scores.length;
- for(const s of state.scores){const button=document.createElement('button');button.className='score-item'+(s.id===state.active?' selected':'');button.setAttribute('aria-pressed',String(s.id===state.active));const icon=document.createElement('span');icon.className='file-icon';icon.textContent='♫';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=s.name;sub.textContent=s.xml?(s.recognized&&!s.reviewed?'Needs review':'Editable score'):`PDF · ${s.pages} pages`;text.append(title,sub);button.append(icon,text);button.onclick=safeAction(async()=>{state.active=s.id;state.view=s.bytes?'original':'score';renderLibrary();await render();});$('#library-list').append(button);}
+ for(const s of state.scores){const button=document.createElement('button');button.className='score-item'+(s.id===state.active?' selected':'');button.setAttribute('aria-pressed',String(s.id===state.active));const icon=document.createElement('span');icon.className='file-icon';icon.textContent='♫';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=s.visualFull?'Golden Lady':s.name;sub.textContent=s.visualFull?'Complete transcription · 51 measures':s.xml?(s.recognized&&!s.reviewed?'Needs review':`${s.info.measures} measures · Editable score`):`PDF · ${s.pages} pages`;text.append(title,sub);button.append(icon,text);button.onclick=safeAction(async()=>{state.active=s.id;state.page=1;state.view=s.xml?'score':'original';closeDialogs();renderLibrary();await render();});$('#library-list').append(button);}
+ $('#open-full').hidden=state.scores.some(s=>s.visualFull);$('#open-excerpt').hidden=state.scores.some(s=>s.visualDraft);$('.library-samples').hidden=$('#open-full').hidden&&$('#open-excerpt').hidden;
+ filterLibrary();
 }
 function renderControls(){
  const s=active();if(!s)return;
- $('#score-title').textContent=s.name;$('#score-subtitle').textContent=s.visualFull?'Visual transcription · Both PDF pages · 51 measures':s.visualDraft?'AI visual transcription · A section, four-measure draft':s.recognized?'Recognized from PDF · review required':s.xml?'MusicXML · editable notation':s.name==='Golden Lady'?'Stevie Wonder / Rhythm chart':'Imported PDF';
+ $('#score-title').textContent=s.visualFull?'Golden Lady':s.name;$('#score-subtitle').textContent=s.visualFull?'Stevie Wonder':s.visualDraft?'Four-measure excerpt':s.recognized?'Transcription · needs review':s.xml?'Editable score':'Original PDF';
  const editable=!!s.xml;$('#original-key').textContent=editable?s.info.keyName:'Awaiting recognition';
+ $('#current-key').textContent=editable?KEY_NAMES[s.targetFifths??s.info.fifths]?.[s.info.minor?1:0]:'Key';$('#transpose-open').disabled=!editable;$('#transpose-open').classList.toggle('changed',!!s.semitones);$('#source-label').textContent=state.view==='original'?'Original PDF':state.view==='compare'?'Compare':'Transcription';
  $('#target-key').replaceChildren();if(editable){for(const [fifths,names] of Object.entries(KEY_NAMES).sort((a,b)=>Number(a[0])-Number(b[0]))){const option=document.createElement('option');option.value=fifths;option.textContent=names[s.info.minor?1:0]+' '+(s.info.minor?'minor':'major');$('#target-key').append(option);}$('#target-key').value=s.targetFifths??s.info.fifths;}else{const o=document.createElement('option');o.textContent='Choose a key';$('#target-key').append(o);}
  for(const selector of ['#target-key','#step-down','#step-up','#reset'])$(selector).disabled=!editable;
  $('#step-down').disabled=!editable||s.semitones<=-24;$('#step-up').disabled=!editable||s.semitones>=24;
@@ -94,15 +98,17 @@ function renderControls(){
  else notice('Your original, preserved. Recognize the scan or import matching MusicXML to start transposing.');
 }
 async function render(){
- const s=active();if(!s)return;const epoch=++state.render;renderControls();$('#canvas-area').classList.toggle('compare',state.view==='compare');$('#original-pane').hidden=state.view==='score';$('#editable-pane').hidden=state.view==='original';
+ const s=active();if(!s)return;const epoch=++state.render;renderControls();$('#canvas-area').classList.toggle('compare',state.view==='compare');$('#original-pane').hidden=state.view==='score';$('#editable-pane').hidden=state.view==='original';$('#reader-loading').hidden=false;$('#canvas-area').classList.add('loading');
+ try{
  if(state.view!=='score'){
   const doc=await loadPdf(s);if(epoch!==state.render)return;const target=$('#pdf-pages');target.replaceChildren();
   for(let p=1;p<=doc.numPages;p++){const page=await doc.getPage(p);if(epoch!==state.render)return;const viewport=page.getViewport({scale:1}),scale=Math.min(2,1500/viewport.width);const v=page.getViewport({scale});const paper=document.createElement('div');paper.className='paper';paper.style.width=state.zoom+'%';const canvas=document.createElement('canvas');canvas.width=v.width;canvas.height=v.height;canvas.setAttribute('role','img');canvas.setAttribute('aria-label',`${s.name}, original PDF page ${p} of ${doc.numPages}`);paper.append(canvas);target.append(paper);await page.render({canvasContext:canvas.getContext('2d'),viewport:v}).promise;if(epoch!==state.render)return;}
  }
  if(state.view!=='original')await renderNotation(s,epoch);
- $('#zoom-label').textContent=state.zoom+'%';
+ if(epoch===state.render)updatePages();
+ }finally{if(epoch===state.render){$('#reader-loading').hidden=true;$('#canvas-area').classList.remove('loading');}}
 }
-function currentXML(s=active()){return transposeScore(s.xml,s.semitones||0,s.targetFifths??s.info.fifths);}
+function currentXML(s=active()){return formatMusicXML(transposeScore(s.xml,s.semitones||0,s.targetFifths??s.info.fifths));}
 function engravingXML(xml){
  // Verovio currently prints hidden degrees in addition to the custom chord label.
  // Respect their display flag in this render-only copy; exports retain the harmony data.
@@ -112,11 +118,34 @@ function engravingXML(xml){
 }
 async function renderNotation(s,epoch=state.render){
  const vrv=await toolkit();if(epoch!==state.render)return;
- vrv.resetOptions();vrv.setOptions({inputFrom:'xml',pageWidth:2100,pageHeight:2970,scale:42,adjustPageHeight:true,breaks:s.visualFull?'encoded':'auto',header:'auto',footer:'none'});
+ vrv.resetOptions();vrv.setOptions({...engravingOptions,breaks:s.visualFull?'encoded':'auto'});
  if(!vrv.loadData(engravingXML(currentXML(s))))throw Error('The recognized notation could not be engraved. Review or replace the MusicXML file.');
  const pages=vrv.getPageCount();if(!pages)throw Error('No notation pages were produced.');
- $('#notation-pages').replaceChildren();for(let i=1;i<=pages;i++){const paper=document.createElement('div');paper.className='paper';paper.style.width=state.zoom+'%';paper.innerHTML=DOMPurify.sanitize(vrv.renderToSVG(i),{USE_PROFILES:{svg:true,svgFilters:true},ADD_TAGS:['use'],ADD_ATTR:['viewBox','xlink:href']});paper.setAttribute('aria-label',`${s.name}, editable page ${i}`);$('#notation-pages').append(paper);}
+ $('#notation-pages').replaceChildren();for(let i=1;i<=pages;i++){const paper=document.createElement('div');paper.className='paper';paper.innerHTML=DOMPurify.sanitize(formatNotationSVG(vrv.renderToSVG(i),{fixedSystems:s.visualFull,page:i,pageCount:pages}),{USE_PROFILES:{svg:true,svgFilters:true},ADD_TAGS:['use'],ADD_ATTR:['viewBox','xlink:href']});paper.setAttribute('aria-label',`${s.name}, editable page ${i}`);$('#notation-pages').append(paper);}
 }
+function closeDialogs(){all('dialog[open]').forEach(d=>d.close());}
+function openPanel(id){closeDialogs();$(id).showModal();}
+function filterLibrary(){const q=$('#library-search').value.toLowerCase().trim();let count=0;all('#library-list .score-item').forEach(b=>{b.hidden=!b.textContent.toLowerCase().includes(q);if(!b.hidden)count++;});$('#library-empty').hidden=!!count;}
+function updatePages(){
+ const targets=state.view==='compare'?['#pdf-pages','#notation-pages']:[state.view==='original'?'#pdf-pages':'#notation-pages'];
+ const count=Math.max(1,...targets.map(t=>$(t).children.length));state.page=Math.min(count,Math.max(1,state.page));
+ for(const t of ['#pdf-pages','#notation-pages'])[...$(t).children].forEach((p,i)=>p.dataset.current=String(i===state.page-1));
+ $('#page-label').textContent=`${state.page} / ${count}`;$('#page-prev').disabled=state.page<=1;$('#page-next').disabled=state.page>=count;
+ applyZoom();
+}
+function applyZoom(){
+ for(const paper of all('.paper')){
+  const container=paper.closest('.score-pane'),visual=paper.querySelector('svg,canvas'),aspect=visual?.tagName.toLowerCase()==='svg'?parseFloat(visual.getAttribute('width'))/parseFloat(visual.getAttribute('height')):visual?visual.width/visual.height:2160/2794;
+  const width=Math.min(container.clientWidth,1120),height=$('#canvas-area').clientHeight-(state.view==='compare'?72:48);
+  const base=state.fit==='page'?Math.min(width,height*aspect):width;
+  paper.style.width=Math.round(base*state.zoom/100)+'px';paper.style.maxWidth='none';
+ }
+ $('#zoom-label').textContent=state.zoom+'%';$('#fit-width').classList.toggle('active',state.fit==='width');$('#fit-page').classList.toggle('active',state.fit==='page');
+}
+function turnPage(amount){const before=state.page;state.page+=amount;updatePages();if(before!==state.page)$('#canvas-area').scrollTo(0,0);}
+function zoomBy(amount){state.zoom=Math.min(240,Math.max(50,state.zoom+amount));applyZoom();}
+function setFit(mode){state.fit=mode;state.zoom=100;applyZoom();$('#canvas-area').scrollTo(0,0);}
+function focusMode(on){closeDialogs();document.body.classList.toggle('focus-mode',on);$('#focus-exit').hidden=!on;requestAnimationFrame(applyZoom);}
 async function setTranspose(n,target){
  const s=active();if(!s?.xml)throw Error('Recognize the PDF or import MusicXML first.');if(!Number.isInteger(n)||n<-24||n>24)throw Error('Choose -24 to +24 semitones.');s.semitones=n;s.targetFifths=target??chooseFifths(s.info.fifths,n);if(state.view==='original')state.view='score';await render();await persist(s);
 }
@@ -165,17 +194,23 @@ async function saveReview(){
  s.xml=xml;s.info=scoreInfo(parseScore(xml));s.semitones=0;s.targetFifths=s.info.fifths;s.reviewed=!s.recognized;s.userEdited=true;await persist(s);$('#review-dialog').close();renderLibrary();await render();toast('Corrections saved at the original pitch.');
 }
 all('#import-top,#import-side').forEach(b=>b.onclick=()=>$('#file-input').click());
-$('#open-excerpt').onclick=safeAction(openVisualExcerpt);
-$('#open-full').onclick=safeAction(openFullTranscription);
+$('#open-excerpt').onclick=safeAction(async()=>{closeDialogs();state.page=1;await openVisualExcerpt();});
+$('#open-full').onclick=safeAction(async()=>{closeDialogs();state.page=1;await openFullTranscription();});
 $('#file-input').onchange=safeAction(async e=>{for(const f of e.target.files)await importFile(f);e.target.value='';});
 $('#xml-input').onchange=safeAction(async e=>{await importFile(e.target.files[0],true);e.target.value='';});
 $('#attach-xml').onclick=()=>$('#xml-input').click();
-for(const v of ['original','score','compare'])$('#view-'+v).onclick=safeAction(async()=>{state.view=v;await render();});
+for(const v of ['original','score','compare'])$('#view-'+v).onclick=safeAction(async()=>{state.view=v;closeDialogs();await render();});
 $('#step-down').onclick=safeAction(()=>setTranspose(active().semitones-1));$('#step-up').onclick=safeAction(()=>setTranspose(active().semitones+1));$('#reset').onclick=safeAction(()=>setTranspose(0,active().info.fifths));
 $('#target-key').onchange=safeAction(async e=>{const s=active(),f=Number(e.target.value);let n=mod((f-s.info.fifths)*7,12);if(n>6)n-=12;await setTranspose(n,f);});
-for(const [selector,amount]of [['#zoom-in',10],['#zoom-out',-10]])$(selector).onclick=()=>{state.zoom=Math.min(180,Math.max(50,state.zoom+amount));all('.paper').forEach(p=>p.style.width=state.zoom+'%');$('#zoom-label').textContent=state.zoom+'%';};
-$('#fit').onclick=()=>{state.zoom=100;all('.paper').forEach(p=>p.style.width='100%');$('#zoom-label').textContent='100%';};
-$('#recognize').onclick=safeAction(recognizeMusic);$('#export-open').onclick=openExport;$('#review-open').onclick=openReview;$('#save-review').onclick=safeAction(saveReview);
+for(const [selector,amount]of [['#zoom-in',10],['#zoom-out',-10]])$(selector).onclick=()=>zoomBy(amount);
+$('#fit').onclick=()=>setFit('page');$('#fit-width').onclick=()=>setFit('width');$('#fit-page').onclick=()=>setFit('page');
+$('#recognize').onclick=safeAction(recognizeMusic);$('#export-open').onclick=()=>{closeDialogs();openExport();};$('#review-open').onclick=()=>{closeDialogs();openReview();};$('#save-review').onclick=safeAction(saveReview);
+$('#library-open').onclick=()=>openPanel('#library-dialog');$('#transpose-open').onclick=()=>openPanel('#transpose-dialog');$('#tools-open').onclick=$('#source-open').onclick=()=>openPanel('#tools-dialog');
+$('#library-search').oninput=filterLibrary;$('#page-prev').onclick=()=>turnPage(-1);$('#page-next').onclick=()=>turnPage(1);$('#focus-enter').onclick=()=>focusMode(true);$('#focus-exit').onclick=()=>focusMode(false);
+all('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
+all('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}}));
+window.addEventListener('resize',()=>requestAnimationFrame(applyZoom));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!document.querySelector('dialog[open]'))focusMode(false);if(e.ctrlKey||e.metaKey||e.altKey||document.querySelector('dialog[open]')||e.target.matches('input,textarea,select'))return;const action={'ArrowRight':()=>turnPage(1),'ArrowLeft':()=>turnPage(-1),'+':()=>zoomBy(10),'=':()=>zoomBy(10),'-':()=>zoomBy(-10)}[e.key];if(action){e.preventDefault();action();}});
 $('#reviewed').onchange=safeAction(async e=>{active().reviewed=e.target.checked;await persist(active());renderLibrary();renderControls();});
 $('#download-original').onclick=()=>download(active().bytes,active().name+'.pdf','application/pdf');
 $('#download-xml').onclick=safeAction(()=>{const s=active();if(s.recognized&&!s.reviewed)throw Error('Review the recognized score first.');download(currentXML(),exportName(s,'musicxml'),'application/vnd.recordare.musicxml+xml');});
@@ -184,7 +219,7 @@ let dragDepth=0;document.addEventListener('dragenter',e=>{if(e.dataTransfer?.typ
 async function init(){
  state.scores=await savedScores();
  if(!state.scores.length){const response=await fetch('/samples/golden-lady.pdf');if(!response.ok)throw Error('The sample PDF could not be loaded. Import a PDF to begin.');const s={id:'golden-lady-sample',name:'Golden Lady',kind:'pdf',bytes:new Uint8Array(await response.arrayBuffer()),pages:2,scanned:true,reviewed:false,semitones:0};state.scores=[s];await persist(s);}
- state.active=state.scores[0].id;state.view=active().bytes?'original':'score';
+ state.active=(state.scores.find(s=>s.visualFull)||state.scores[0]).id;state.view=active().xml?'score':'original';
  const requestedScore=new URLSearchParams(location.search).get('score');
  if(requestedScore==='golden-lady-full')await openFullTranscription();else if(requestedScore==='ai-excerpt')await openVisualExcerpt();else{renderLibrary();await render();}
  $('#engine-status').textContent='Saved on this device';

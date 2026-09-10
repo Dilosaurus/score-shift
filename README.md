@@ -12,6 +12,10 @@ The editable file is `output/golden-lady-full.musicxml`; the source map and edit
 
 Run `Start ScoreShift.ps1`, then open http://127.0.0.1:5173. Node.js must be installed. The app and recognition engine have been prepared on this computer. The server listens only on loopback and does not start with Windows.
 
+The reader opens directly on the score. **Library** opens a searchable drawer; the **key button** opens transposition. **Score options** contains Original PDF / Score / Compare, fit width / fit page, focus mode, and correction tools. Bottom arrows (or keyboard left/right arrows) turn pages; +/− change zoom. Export prints every notation page, even though the reader shows one page at a time.
+
+Golden Lady now uses a standard letter page with six fixed staff rows per page, Bravura music glyphs, and Arial text. Changing key preserves page dimensions, staff size, and system positions; horizontal spacing inside measures can adjust to accommodate accidentals. MusicXML exports include the page and font settings. Other notation applications may apply their own engraving rules when opening MusicXML.
+
 The interface can be hosted as static files for viewing PDFs and transposing MusicXML; this revision is being used locally. Recognizing a new PDF requires this computer's local server to be running. Recognition is not hosted in the cloud.
 
 ## Workflow
