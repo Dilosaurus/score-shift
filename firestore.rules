@@ -19,9 +19,21 @@ service cloud.firestore {
         && request.resource.data.total is int
         && request.resource.data.data is bytes;
     }
+    function listDoc() {
+      return request.resource.data.keys().hasAll(['kind', 'name', 'items', 'updatedAt'])
+        && request.resource.data.kind in ['book', 'set']
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 120
+        && request.resource.data.items is list
+        && request.resource.data.updatedAt is number;
+    }
     match /libraries/{code} {
       allow get, create, update: if validCode(code);
       allow list, delete: if false;
+      match /lists/{list} {
+        allow read, delete: if validCode(code);
+        allow create, update: if validCode(code) && listDoc();
+      }
       match /scores/{score} {
         allow read, delete: if validCode(code);
         allow create, update: if validCode(code) && scoreDoc();

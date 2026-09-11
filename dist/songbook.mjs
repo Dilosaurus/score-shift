@@ -27,9 +27,10 @@ async function loadSdk(){
  const [app,firestore]=await Promise.all([import(`${base}/firebase-app.js`),import(`${base}/firebase-firestore.js`)]);
  return{...app,...firestore};
 }
-export function createSongbook({code,onChange,onStatus=()=>{},sdk,config=firebaseConfig}){
+export function createSongbook({code,onChange,onLists=()=>{},onStatus=()=>{},sdk,config=firebaseConfig}){
  if(!normalizeCode(code))throw Error('That invite code is not valid.');
- let fb,db,unsubscribe,firstSnapshot;const queues=new Map();
+ let fb,db,unsubscribe,unsubscribeLists,firstSnapshot;const queues=new Map();
+ const listRef=id=>fb.doc(db,'libraries',code,'lists',id);
  const scoresPath=()=>['libraries',code,'scores'];
  const scoreRef=id=>fb.doc(db,...scoresPath(),id);
  const chunkRef=(id,field,index)=>fb.doc(db,...scoresPath(),id,'blobs',`${field}.${index}`);
@@ -47,7 +48,8 @@ export function createSongbook({code,onChange,onStatus=()=>{},sdk,config=firebas
     onChange(changes,snapshot.docs.map(d=>d.id));
     onStatus(snapshot.metadata.fromCache?'Offline — changes sync when you reconnect':'Synced','ok');
     if(firstSnapshot){firstSnapshot();firstSnapshot=null;}
-   },error=>{console.error(error);onStatus('Could not reach the songbook. '+(error.code==='permission-denied'?'Check the invite code.':'Check your connection.'),'error');if(firstSnapshot){reject(error);firstSnapshot=null;}});
+   },error=>{console.error(error);onStatus('Could not reach the shared library. '+(error.code==='permission-denied'?'Check the invite code.':'Check your connection.'),'error');if(firstSnapshot){reject(error);firstSnapshot=null;}});
+   unsubscribeLists=fb.onSnapshot(fb.collection(db,'libraries',code,'lists'),snapshot=>{onLists(snapshot.docChanges().map(change=>({type:change.type,id:change.doc.id,meta:change.doc.data()})),snapshot.docs.map(d=>d.id));},error=>console.error(error));
   });
  }
  async function writeBlob(id,field,value,previousCount=0){
@@ -58,7 +60,7 @@ export function createSongbook({code,onChange,onStatus=()=>{},sdk,config=firebas
  }
  async function readBlob(id,field,info){
   const chunks=[];
-  for(let i=0;i<info.count;i++){const snap=await fb.getDoc(chunkRef(id,field,i));if(!snap.exists())throw Error('Part of this score is missing from the songbook.');chunks.push(snap.data().data.toUint8Array());}
+  for(let i=0;i<info.count;i++){const snap=await fb.getDoc(chunkRef(id,field,i));if(!snap.exists())throw Error('Part of this score is missing from the shared library.');chunks.push(snap.data().data.toUint8Array());}
   const bytes=joinChunks(chunks);
   if(await digest(bytes)!==info.hash)throw Error('This score did not download correctly. Try again.');
   return decodeField(field,bytes);
@@ -97,8 +99,10 @@ export function createSongbook({code,onChange,onStatus=()=>{},sdk,config=firebas
    await fb.deleteDoc(scoreRef(id));
   });
  }
- function stop(){unsubscribe?.();unsubscribe=null;}
- return{code,connect,save,fetchBlobs,remove,stop,link:origin=>inviteLink(code,origin)};
+ function saveList(id,payload){return fb.setDoc(listRef(id),{...payload,savedAt:fb.serverTimestamp()});}
+ function removeList(id){return fb.deleteDoc(listRef(id));}
+ function stop(){unsubscribe?.();unsubscribe=null;unsubscribeLists?.();unsubscribeLists=null;}
+ return{code,connect,save,fetchBlobs,remove,saveList,removeList,stop,link:origin=>inviteLink(code,origin)};
 }
 // Reconcile a remote change list into the local score list. Returns the ids whose blobs must be fetched
 // and the ids that were removed. Pure so it can be unit-tested without Firestore.

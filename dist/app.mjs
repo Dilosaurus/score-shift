@@ -5,9 +5,10 @@ import {parseScore,scoreInfo,transposeScore,chooseFifths,KEY_NAMES,mod} from './
 import {chordKinds,addHarmony} from './chords.mjs';
 import {engravingOptions,formatMusicXML,formatNotationSVG} from './engraving.mjs';
 import {createSongbook,newCode,normalizeCode,reconcile,hasBlob} from './songbook.mjs';
+import {newList,listPayload,hasItem,addItem,removeItemAt,removeScoreFromList,moveItem,stripFromLists,resolveKey,entryKeyForStep,reconcileLists} from './sets.mjs';
 pdfjs.GlobalWorkerOptions.workerSrc='/vendor/pdf.worker.mjs';
 const $=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];
-const state={scores:[],active:null,view:'original',zoom:100,render:0,page:1,fit:'width',songbook:null,songbookReady:false};
+const state={scores:[],active:null,view:'original',zoom:100,render:0,page:1,fit:'width',songbook:null,songbookReady:false,lists:[],listsReady:false,tab:'books',book:'all',openSet:null,set:null};
 const SONGBOOK_KEY='scoreshift-songbook';
 const active=()=>state.scores.find(s=>s.id===state.active);
 let enginePromise,dbPromise,toastTimer;
@@ -15,10 +16,10 @@ const apiBase=['127.0.0.1','localhost'].includes(location.hostname)?'':'http://1
 function toast(message){$('#toast').textContent=message;$('#toast').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('#toast').hidden=true,6000);}
 function notice(message,error=false){$('#notice').replaceChildren();const icon=document.createElement('span');icon.textContent=error?'!':'◈';const text=document.createElement('span');text.textContent=message;$('#notice').append(icon,text);$('#notice').classList.toggle('error',error);}
 function safeAction(fn){return async(...args)=>{try{await fn(...args);}catch(e){console.error(e);toast(e.message||'Something went wrong. Please try again.');}};}
-function database(){return dbPromise??=new Promise((resolve,reject)=>{const req=indexedDB.open('scoreshift-device',1);req.onupgradeneeded=()=>req.result.createObjectStore('scores',{keyPath:'id'});req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
+function database(){return dbPromise??=new Promise((resolve,reject)=>{const req=indexedDB.open('scoreshift-device',2);req.onupgradeneeded=()=>{const db=req.result;if(!db.objectStoreNames.contains('scores'))db.createObjectStore('scores',{keyPath:'id'});if(!db.objectStoreNames.contains('lists'))db.createObjectStore('lists',{keyPath:'id'});};req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
 async function persistLocal(s){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('scores','readwrite');tx.objectStore('scores').put({...s,pdf:undefined,job:undefined,dirty:undefined,confirmRemove:undefined});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{toast('This browser could not save the score. Keep this tab open or export your work.');}}
 async function deleteLocal(id){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('scores','readwrite');tx.objectStore('scores').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{}}
-async function persist(s){await persistLocal(s);if(!state.songbook)return;s.dirty=true;state.songbook.save(s).catch(e=>{console.error(e);songbookStatus('Could not save to the songbook. '+(e.message||'Try again.'),'error');}).finally(()=>{s.dirty=false;persistLocal(s);});}
+async function persist(s){await persistLocal(s);if(!state.songbook)return;s.dirty=true;state.songbook.save(s).catch(e=>{console.error(e);songbookStatus('Could not save to the shared library. '+(e.message||'Try again.'),'error');}).finally(()=>{s.dirty=false;persistLocal(s);});}
 async function savedScores(){try{const db=await database();return await new Promise((resolve,reject)=>{const req=db.transaction('scores').objectStore('scores').getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}catch{return [];}}
 async function toolkit(){return enginePromise??=Promise.all([import('./vendor/verovio-module.mjs'),import('./vendor/verovio.mjs')]).then(async([wasm,api])=>new api.VerovioToolkit(await wasm.default()));}
 function unpackScore(bytes,name='score.xml'){
@@ -63,21 +64,65 @@ async function openFullTranscription(){
  }
  state.active=s.id;state.view='score';renderLibrary();await render();
 }
+function bookLists(){return state.lists.filter(l=>l.kind==='book').sort((a,b)=>a.name.localeCompare(b.name));}
+function setLists(){return state.lists.filter(l=>l.kind==='set').sort((a,b)=>a.name.localeCompare(b.name));}
+function currentBook(){return state.lists.find(l=>l.id===state.book&&l.kind==='book')||null;}
+function openSet(){return state.lists.find(l=>l.id===state.openSet&&l.kind==='set')||null;}
+function visibleScores(){const book=currentBook();if(!book){state.book='all';return state.scores;}return book.items.map(i=>state.scores.find(s=>s.id===i.id)).filter(Boolean);}
+function scoreTitle(s){return s.visualFull?'Golden Lady':s.name;}
+function keyLabel(s,fifths){return s.info?KEY_NAMES[fifths]?.[s.info.minor?1:0]+' '+(s.info.minor?'minor':'major'):'';}
+function armed(button,text){if(button.dataset.armed==='true'){clearTimeout(button._disarm);button.dataset.armed='';button.textContent=button.dataset.label;return true;}button.dataset.label??=button.textContent;button.dataset.armed='true';button.textContent=text;clearTimeout(button._disarm);button._disarm=setTimeout(()=>{button.dataset.armed='';button.textContent=button.dataset.label;},6000);return false;}
+function renderTabs(){$('#books-panel').hidden=state.tab!=='books';$('#sets-panel').hidden=state.tab!=='sets';for(const t of ['books','sets']){$('#tab-'+t).classList.toggle('active',state.tab===t);$('#tab-'+t).setAttribute('aria-selected',String(state.tab===t));}}
+function renderBooks(){
+ const chips=$('#book-chips');chips.replaceChildren();
+ const all=document.createElement('button');all.className='chip'+(state.book==='all'?' active':'');all.textContent='All charts';all.onclick=()=>{state.book='all';$('#book-rename-form').hidden=true;renderLibrary();};chips.append(all);
+ for(const b of bookLists()){const chip=document.createElement('button');chip.className='chip'+(state.book===b.id?' active':'');chip.textContent=b.name;chip.title=`${b.items.length} chart${b.items.length===1?'':'s'}`;chip.onclick=()=>{state.book=b.id;$('#book-rename-form').hidden=true;renderLibrary();};chips.append(chip);}
+ const add=document.createElement('button');add.className='chip ghost';add.textContent='+ New book';add.onclick=()=>{$('#book-new').hidden=false;$('#book-new-name').focus();};chips.append(add);
+ $('#book-tools').hidden=!currentBook();
+ $('#library-list').dataset.empty=currentBook()?'This book is empty. Open a chart, then use Score options to add it here.':'No charts yet. Import a PDF or MusicXML file.';
+}
 function renderLibrary(){
+ renderTabs();renderBooks();
  $('#library-list').replaceChildren();$('#score-count').textContent=state.scores.length;
- for(const s of state.scores){const row=document.createElement('div');row.className='score-item'+(s.id===state.active?' selected':'');const button=document.createElement('button');button.className='score-open';button.setAttribute('aria-pressed',String(s.id===state.active));const icon=document.createElement('span');icon.className='file-icon';icon.textContent='♫';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=s.visualFull?'Golden Lady':s.name;sub.textContent=s.visualFull?'Complete transcription · 51 measures':hasBlob(s,'xml')?(s.recognized&&!s.reviewed?'Needs review':`${s.info?.measures??'?'} measures · Editable score`):`PDF · ${s.pages||'?'} pages`;if(s.missing?.length)sub.textContent+=' · downloading';text.append(title,sub);button.append(icon,text);button.onclick=safeAction(async()=>{state.active=s.id;state.page=1;state.view=hasBlob(s,'xml')?'score':'original';closeDialogs();renderLibrary();await render();});if(s.confirmRemove){row.classList.add('confirming');const ask=document.createElement('div');ask.className='score-confirm';const q=document.createElement('span');q.textContent=state.songbook?`Remove “${s.visualFull?'Golden Lady':s.name}” for everyone?`:`Remove “${s.visualFull?'Golden Lady':s.name}” from this device?`;const yes=document.createElement('button');yes.className='button danger';yes.textContent='Remove';yes.onclick=safeAction(()=>removeScore(s));const no=document.createElement('button');no.className='button';no.textContent='Keep';no.onclick=()=>{delete s.confirmRemove;renderLibrary();};ask.append(q,yes,no);row.append(ask);$('#library-list').append(row);continue;}const remove=document.createElement('button');remove.className='score-remove';remove.textContent='×';remove.setAttribute('aria-label',`Remove ${s.name}`);remove.title='Remove score';remove.onclick=()=>{for(const other of state.scores)delete other.confirmRemove;s.confirmRemove=true;renderLibrary();row.querySelector('.button.danger')?.focus();};row.append(button,remove);$('#library-list').append(row);}
+ for(const s of visibleScores()){const row=document.createElement('div');row.className='score-item'+(s.id===state.active?' selected':'');const button=document.createElement('button');button.className='score-open';button.setAttribute('aria-pressed',String(s.id===state.active));const icon=document.createElement('span');icon.className='file-icon';icon.textContent='♫';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=scoreTitle(s);sub.textContent=s.visualFull?'Complete transcription · 51 measures':hasBlob(s,'xml')?(s.recognized&&!s.reviewed?'Needs review':`${s.info?.measures??'?'} measures · Editable score`):`PDF · ${s.pages||'?'} pages`;if(s.missing?.length)sub.textContent+=' · downloading';text.append(title,sub);button.append(icon,text);button.onclick=safeAction(async()=>{if(state.set)exitSet();state.active=s.id;state.page=1;state.view=hasBlob(s,'xml')?'score':'original';closeDialogs();renderLibrary();await render();});if(s.confirmRemove){row.classList.add('confirming');const ask=document.createElement('div');ask.className='score-confirm';const q=document.createElement('span');q.textContent=state.songbook?`Remove “${scoreTitle(s)}” for everyone?`:`Remove “${scoreTitle(s)}” from this device?`;const yes=document.createElement('button');yes.className='button danger';yes.textContent='Remove';yes.onclick=safeAction(()=>removeScore(s));const no=document.createElement('button');no.className='button';no.textContent='Keep';no.onclick=()=>{delete s.confirmRemove;renderLibrary();};ask.append(q,yes,no);row.append(ask);$('#library-list').append(row);continue;}const remove=document.createElement('button');remove.className='score-remove';remove.textContent='×';remove.setAttribute('aria-label',`Remove ${s.name}`);remove.title='Remove chart';remove.onclick=()=>{for(const other of state.scores)delete other.confirmRemove;s.confirmRemove=true;renderLibrary();row.querySelector('.button.danger')?.focus();};row.append(button,remove);$('#library-list').append(row);}
  $('#open-full').hidden=state.scores.some(s=>s.visualFull);$('.library-samples').hidden=$('#open-full').hidden;
- filterLibrary();
+ filterLibrary();renderSets();renderOrganize();
+}
+function renderSets(){
+ const set=openSet();$('#sets-home').hidden=!!set;$('#set-detail').hidden=!set;
+ if(!set){const list=$('#set-list');list.replaceChildren();const sets=setLists();$('#sets-empty').hidden=!!sets.length;for(const l of sets){const row=document.createElement('button');row.className='set-row';const icon=document.createElement('span');icon.className='set-icon';icon.textContent='≡';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=l.name;sub.textContent=`${l.items.length} chart${l.items.length===1?'':'s'}`+(state.set?.listId===l.id?' · playing':'');text.append(title,sub);row.append(icon,text);row.onclick=()=>{state.openSet=l.id;renderLibrary();};list.append(row);}return;}
+ if(document.activeElement!==$('#set-name'))$('#set-name').value=set.name;
+ $('#set-play').disabled=!set.items.length;$('#set-play').textContent=state.set?.listId===set.id?'▶ Playing this set':'▶ Play set';
+ const songs=$('#set-songs');songs.replaceChildren();
+ set.items.forEach((item,i)=>{
+  const s=state.scores.find(x=>x.id===item.id),row=document.createElement('div');row.className='set-song'+(state.set?.listId===set.id&&state.set.index===i?' current':'');
+  const n=document.createElement('span');n.className='n';n.textContent=i+1;
+  const title=document.createElement('button');title.className='title';const strong=document.createElement('strong'),small=document.createElement('small');strong.textContent=s?scoreTitle(s):'Chart no longer in the library';const key=s?resolveKey(s,item):null;small.textContent=s?(hasBlob(s,'xml')?(key.fromSet?'Set key · ':'Chart key · ')+keyLabel(s,key.fifths):'PDF only'):'';title.append(strong,small);title.onclick=safeAction(()=>playSet(set.id,i));title.disabled=!s;
+  const controls=document.createElement('div');controls.className='controls';
+  if(s&&hasBlob(s,'xml')){const select=document.createElement('select');select.setAttribute('aria-label',`Key for ${scoreTitle(s)} in this set`);const own=document.createElement('option');own.value='';own.textContent='Chart key';select.append(own);for(const [fifths,names] of Object.entries(KEY_NAMES).sort((a,b)=>Number(a[0])-Number(b[0]))){const o=document.createElement('option');o.value=fifths;o.textContent=names[s.info.minor?1:0];select.append(o);}select.value=item.fifths==null?'':String(item.fifths);select.onchange=safeAction(async e=>{if(e.target.value==='')delete item.fifths;else item.fifths=Number(e.target.value);await saveList(set);renderLibrary();if(state.set?.listId===set.id&&state.set.index===i)await render();});controls.append(select);}
+  for(const [label,delta,aria] of [['↑',-1,'Move up'],['↓',1,'Move down']]){const b=document.createElement('button');b.className='plain-button';b.textContent=label;b.setAttribute('aria-label',aria);b.disabled=i+delta<0||i+delta>=set.items.length;b.onclick=safeAction(async()=>{if(moveItem(set,i,i+delta)){if(state.set?.listId===set.id){if(state.set.index===i)state.set.index=i+delta;else if(state.set.index===i+delta)state.set.index=i;renderSetBar();}await saveList(set);renderLibrary();}});controls.append(b);}
+  const remove=document.createElement('button');remove.className='plain-button';remove.textContent='×';remove.setAttribute('aria-label','Remove from set');remove.onclick=safeAction(async()=>{removeItemAt(set,i);if(state.set?.listId===set.id){if(!set.items.length)exitSet();else{state.set.index=Math.min(state.set.index>i?state.set.index-1:state.set.index,set.items.length-1);renderSetBar();}}await saveList(set);renderLibrary();});controls.append(remove);
+  row.append(n,title,controls);songs.append(row);
+ });
+ const select=$('#set-add-select');select.replaceChildren();for(const s of [...state.scores].sort((a,b)=>scoreTitle(a).localeCompare(scoreTitle(b)))){const o=document.createElement('option');o.value=s.id;o.textContent=scoreTitle(s);select.append(o);}$('#set-add-button').disabled=!state.scores.length;
+}
+function renderOrganize(){
+ const s=active(),toggles=$('#book-toggles');toggles.replaceChildren();const books=bookLists();
+ if(!books.length){const p=document.createElement('span');p.className='caption';p.textContent='No books yet. Create one under Library › Books.';toggles.append(p);}
+ else if(s)for(const b of books){const on=hasItem(b,s.id);const chip=document.createElement('button');chip.className='chip'+(on?' checked':'');chip.textContent=(on?'✓ ':'')+b.name;chip.setAttribute('aria-pressed',String(on));chip.onclick=safeAction(async()=>{if(on)removeScoreFromList(b,s.id);else addItem(b,s.id);await saveList(b);renderLibrary();});toggles.append(chip);}
+ const select=$('#add-set-select');select.replaceChildren();const sets=setLists();for(const set of sets){const o=document.createElement('option');o.value=set.id;o.textContent=set.name;select.append(o);}if(!sets.length){const o=document.createElement('option');o.value='';o.textContent='No sets yet';select.append(o);}$('#add-set-button').disabled=!sets.length||!s;
 }
 function renderControls(){
  const s=active();if(!s)return;
- $('#score-title').textContent=s.visualFull?'Golden Lady':s.name;$('#score-subtitle').textContent=s.visualFull?'Stevie Wonder':s.recognized?'Transcription · needs review':s.xml?'Editable score':'Original PDF';
+ const key=resolveKey(s,setEntry(s)),semis=key.semitones,set=setEntry(s)?playing():null;
+ $('#score-title').textContent=scoreTitle(s);$('#score-subtitle').textContent=set?`${set.name} · ${state.set.index+1} of ${set.items.length}`:s.visualFull?'Stevie Wonder':s.recognized?'Transcription · needs review':s.xml?'Editable score':'Original PDF';
+ $('#transpose-scope').textContent=set?'Key for this set only. The chart keeps its own key.':'Melody and chords move together.';$('#reset').textContent=set?'Use chart key':'Reset';
  const editable=hasBlob(s,'xml'),hasPdf=hasBlob(s,'bytes');$('#original-key').textContent=editable?s.info.keyName:'Awaiting recognition';
- $('#current-key').textContent=editable?KEY_NAMES[s.targetFifths??s.info.fifths]?.[s.info.minor?1:0]:'Key';$('#transpose-open').disabled=!editable;$('#transpose-open').classList.toggle('changed',!!s.semitones);$('#source-label').textContent=state.view==='original'?'Original PDF':state.view==='compare'?'Compare':'Transcription';
- $('#target-key').replaceChildren();if(editable){for(const [fifths,names] of Object.entries(KEY_NAMES).sort((a,b)=>Number(a[0])-Number(b[0]))){const option=document.createElement('option');option.value=fifths;option.textContent=names[s.info.minor?1:0]+' '+(s.info.minor?'minor':'major');$('#target-key').append(option);}$('#target-key').value=s.targetFifths??s.info.fifths;}else{const o=document.createElement('option');o.textContent='Choose a key';$('#target-key').append(o);}
+ $('#current-key').textContent=editable?KEY_NAMES[key.fifths]?.[s.info.minor?1:0]:'Key';$('#transpose-open').disabled=!editable;$('#transpose-open').classList.toggle('changed',!!semis);$('#source-label').textContent=state.view==='original'?'Original PDF':state.view==='compare'?'Compare':'Transcription';
+ $('#target-key').replaceChildren();if(editable){for(const [fifths,names] of Object.entries(KEY_NAMES).sort((a,b)=>Number(a[0])-Number(b[0]))){const option=document.createElement('option');option.value=fifths;option.textContent=names[s.info.minor?1:0]+' '+(s.info.minor?'minor':'major');$('#target-key').append(option);}$('#target-key').value=key.fifths;}else{const o=document.createElement('option');o.textContent='Choose a key';$('#target-key').append(o);}
  for(const selector of ['#target-key','#step-down','#step-up','#reset'])$(selector).disabled=!editable;
- $('#step-down').disabled=!editable||s.semitones<=-24;$('#step-up').disabled=!editable||s.semitones>=24;
- $('#semitones').textContent=s.semitones>0?'+'+s.semitones:s.semitones||0;$('#interval-caption').textContent=s.semitones?`${Math.abs(s.semitones)} semitone${Math.abs(s.semitones)===1?'':'s'} ${s.semitones>0?'up':'down'}`:'Original pitch';
+ $('#step-down').disabled=!editable||semis<=-24;$('#step-up').disabled=!editable||semis>=24;
+ $('#semitones').textContent=semis>0?'+'+semis:semis||0;$('#interval-caption').textContent=semis?`${Math.abs(semis)} semitone${Math.abs(semis)===1?'':'s'} ${semis>0?'up':'down'}`:'Original pitch';
  $('#view-original').disabled=!hasPdf;$('#view-score').disabled=!editable;$('#view-compare').disabled=!editable||!hasPdf;
  ['original','score','compare'].forEach(v=>{const b=$('#view-'+v);b.classList.toggle('active',state.view===v);b.setAttribute('aria-pressed',String(state.view===v));});
  $('#recognize').hidden=editable||!hasPdf;$('#recognize').disabled=!!s.job;$('#recognize').textContent=s.job?'Recognizing…':'◈ Recognize music';$('#recognize').classList.toggle('busy',!!s.job);
@@ -87,12 +132,13 @@ function renderControls(){
  $('#recognition-caption').textContent=s.visualFull?'Transcribed visually from the complete scan. Includes lyrics, repeats, endings, and key changes.':s.recognized?`${s.warnings||0} engine warnings. Recognition is a draft, not a verified transcription.`:'Recognition runs on this computer. Handwritten charts need careful review.';
  $('#review-actions').hidden=!editable;$('#reviewed').checked=!!s.reviewed;
  $('#review-actions .review-check').hidden=!s.recognized;
- $('#document-status').textContent=state.view==='original'?`${s.pages} page${s.pages===1?'':'s'} · Original PDF · unchanged`:`${s.info?.measures||0} measures · ${state.view==='compare'?'Compare scores':s.semitones?'Transposed notation':'Original notation'}`;
+ $('#document-status').textContent=state.view==='original'?`${s.pages} page${s.pages===1?'':'s'} · Original PDF · unchanged`:`${s.info?.measures||0} measures · ${state.view==='compare'?'Compare scores':semis?'Transposed notation':'Original notation'}`;
  if(s.job)notice('Recognizing the scan locally. This can take a few minutes. You can keep viewing the original.');
  else if(s.recognized&&!s.reviewed)notice(s.info.chords===0?'No chord symbols were recovered. Add missing chords in Review notes & chords, and check the recognized melody before exporting.':'Recognition needs review. Check pitches, rhythms, key signatures, repeats, and missing chord symbols before exporting.',true);
  else if(s.visualFull)notice('Complete visual transcription. Notes and chords transpose together; Compare shows the supplied scan alongside it.');
- else if(editable)notice(state.view==='original'&&s.semitones?'The original PDF is unchanged. Open Editable score to see the transposition.':`Notes and chord symbols transpose together. ${s.semitones?'The editable score is in your selected key.':'Choose a key or change the semitone interval.'}`);
+ else if(editable)notice(state.view==='original'&&semis?'The original PDF is unchanged. Open Editable score to see the transposition.':`Notes and chord symbols transpose together. ${semis?(set?'This key applies to this set only.':'The editable score is in your selected key.'):'Choose a key or change the semitone interval.'}`);
  else notice('Your original, preserved. Recognize the scan or import matching MusicXML to start transposing.');
+ renderOrganize();
 }
 function renderEmpty(){state.render++;$('#score-title').textContent='No score open';$('#score-subtitle').textContent='Import a PDF or MusicXML file';$('#pdf-pages').replaceChildren();$('#notation-pages').replaceChildren();$('#transpose-open').disabled=true;$('#page-label').textContent='0 / 0';$('#page-prev').disabled=$('#page-next').disabled=true;$('#reader-loading').hidden=true;$('#canvas-area').classList.remove('loading');}
 async function render(){
@@ -108,7 +154,7 @@ async function render(){
  if(epoch===state.render)updatePages();
  }finally{if(epoch===state.render){$('#reader-loading').hidden=true;$('#canvas-area').classList.remove('loading');}}
 }
-function currentXML(s=active()){return formatMusicXML(transposeScore(s.xml,s.semitones||0,s.targetFifths??s.info.fifths));}
+function currentXML(s=active()){const key=resolveKey(s,setEntry(s));return formatMusicXML(transposeScore(s.xml,key.semitones,key.fifths));}
 function engravingXML(xml){
  // Verovio currently prints hidden degrees in addition to the custom chord label.
  // Respect their display flag in this render-only copy; exports retain the harmony data.
@@ -126,11 +172,11 @@ async function renderNotation(s,epoch=state.render){
 function closeDialogs(){all('dialog[open]').forEach(d=>d.close());}
 function openPanel(id){closeDialogs();$(id).showModal();}
 function filterLibrary(){const q=$('#library-search').value.toLowerCase().trim();let count=0;all('#library-list .score-item').forEach(b=>{b.hidden=!(b.querySelector('.score-open')?.textContent||b.textContent).toLowerCase().includes(q);if(!b.hidden)count++;});$('#library-empty').hidden=!!count;}
+function pageCount(){const targets=state.view==='compare'?['#pdf-pages','#notation-pages']:[state.view==='original'?'#pdf-pages':'#notation-pages'];return Math.max(1,...targets.map(t=>$(t).children.length));}
 function updatePages(){
- const targets=state.view==='compare'?['#pdf-pages','#notation-pages']:[state.view==='original'?'#pdf-pages':'#notation-pages'];
- const count=Math.max(1,...targets.map(t=>$(t).children.length));state.page=Math.min(count,Math.max(1,state.page));
+ const count=pageCount();state.page=Math.min(count,Math.max(1,state.page));
  for(const t of ['#pdf-pages','#notation-pages'])[...$(t).children].forEach((p,i)=>p.dataset.current=String(i===state.page-1));
- $('#page-label').textContent=`${state.page} / ${count}`;$('#page-prev').disabled=state.page<=1;$('#page-next').disabled=state.page>=count;
+ const set=playing();$('#page-label').textContent=`${state.page} / ${count}`;$('#page-prev').disabled=state.page<=1&&!(set&&state.set.index>0);$('#page-next').disabled=state.page>=count&&!(set&&state.set.index<set.items.length-1);$('#page-next').title=set&&state.page>=count?'Next chart in set':'';$('#page-prev').title=set&&state.page<=1?'Previous chart in set':'';
  applyZoom();
 }
 function applyZoom(){
@@ -142,13 +188,16 @@ function applyZoom(){
  }
  $('#zoom-label').textContent=state.zoom+'%';$('#fit-width').classList.toggle('active',state.fit==='width');$('#fit-page').classList.toggle('active',state.fit==='page');
 }
-function turnPage(amount){const before=state.page;state.page+=amount;updatePages();if(before!==state.page)$('#canvas-area').scrollTo(0,0);}
+function turnPage(amount){const set=playing();if(set&&amount>0&&state.page>=pageCount()&&state.set.index<set.items.length-1){safeAction(()=>goToSetIndex(state.set.index+1,true))();return;}if(set&&amount<0&&state.page<=1&&state.set.index>0){safeAction(()=>goToSetIndex(state.set.index-1,false))();return;}const before=state.page;state.page+=amount;updatePages();if(before!==state.page)$('#canvas-area').scrollTo(0,0);}
 function zoomBy(amount){state.zoom=Math.min(240,Math.max(50,state.zoom+amount));applyZoom();}
 function setFit(mode){state.fit=mode;state.zoom=100;applyZoom();$('#canvas-area').scrollTo(0,0);}
 function focusMode(on){closeDialogs();document.body.classList.toggle('focus-mode',on);$('#focus-exit').hidden=!on;requestAnimationFrame(applyZoom);}
 async function setTranspose(n,target){
- const s=active();if(!s?.xml)throw Error('Recognize the PDF or import MusicXML first.');if(!Number.isInteger(n)||n<-24||n>24)throw Error('Choose -24 to +24 semitones.');s.semitones=n;s.targetFifths=target??chooseFifths(s.info.fifths,n);if(state.view==='original')state.view='score';await render();await persist(s);
+ const s=active();if(!s?.xml)throw Error('Recognize the PDF or import MusicXML first.');if(!Number.isInteger(n)||n<-24||n>24)throw Error('Choose -24 to +24 semitones.');
+ const entry=setEntry(s);if(entry){entry.fifths=entryKeyForStep(s,n,target);if(state.view==='original')state.view='score';await render();await saveList(playing());renderLibrary();return;}
+ s.semitones=n;s.targetFifths=target??chooseFifths(s.info.fifths,n);if(state.view==='original')state.view='score';await render();await persist(s);
 }
+async function resetTranspose(){const s=active(),entry=setEntry(s);if(entry){delete entry.fifths;await render();await saveList(playing());renderLibrary();return;}await setTranspose(0,s.info.fifths);}
 async function recognizeMusic(){
  const s=active();if(!s?.bytes)return;
  if(s.pages>20)throw Error('For music recognition, split this into PDFs of 20 pages or fewer. The full PDF remains viewable.');
@@ -163,7 +212,7 @@ async function recognizeMusic(){
  }finally{s.job=null;if(active()===s){if(s.xml)state.view='compare';renderLibrary();await render();}}
 }
 function download(bytes,name,type){const url=URL.createObjectURL(new Blob([bytes],{type})),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),10000);}
-function exportName(s,extension){return s.name.replace(/[<>:"/\\|?*]/g,'-')+(s.xml?' - '+KEY_NAMES[s.targetFifths]?.[s.info.minor?1:0]+' '+(s.info.minor?'minor':'major'):'')+'.'+extension;}
+function exportName(s,extension){return s.name.replace(/[<>:"/\\|?*]/g,'-')+(s.xml?' - '+keyLabel(s,resolveKey(s,setEntry(s)).fifths):'')+'.'+extension;}
 function openExport(){const s=active();$('#download-original').disabled=!s?.bytes;const locked=!s?.xml||(s.recognized&&!s.reviewed);$('#download-xml').disabled=locked;$('#print-score').disabled=locked;$('#export-warning').textContent=locked&&s?.xml?'Compare the recognized score with the original, correct any mistakes, then check “I’ve checked the recognized score” to export.':!s?.xml?'Recognize the PDF or import MusicXML to export transposed notation.':'PDF export uses your browser’s Print dialog. Select Save as PDF.';$('#export-dialog').showModal();}
  let reviewDoc;
 const pitchText=(el,step='step',alter='alter',oct='octave')=>{const n=Number(el.querySelector(alter)?.textContent||0);return(el.querySelector(step)?.textContent||'C')+(n>0?'#'.repeat(n):'b'.repeat(-n))+(oct?el.querySelector(oct)?.textContent||'4':'');};
@@ -196,12 +245,13 @@ async function saveReview(){
 async function removeScore(s){
  const name=s.visualFull?'Golden Lady':s.name;delete s.confirmRemove;
  state.scores.splice(state.scores.indexOf(s),1);await deleteLocal(s.id);
- if(state.songbook)state.songbook.remove(s.id).catch(e=>{console.error(e);toast('Could not remove it from the songbook. '+(e.message||''));});
+ for(const list of stripFromLists(state.lists,s.id))await saveList(list);if(state.set){const set=playing();if(!set?.items.length)exitSet();else state.set.index=Math.min(state.set.index,set.items.length-1);}
+ if(state.songbook)state.songbook.remove(s.id).catch(e=>{console.error(e);toast('Could not remove it from the shared library. '+(e.message||''));});
  if(state.active===s.id){if(state.scores.length){state.active=state.scores[0].id;state.page=1;state.view=hasBlob(active(),'xml')?'score':'original';await render();}else{state.active=null;renderEmpty();}}
  renderLibrary();toast(`Removed “${name}”.`);
 }
 function songbookStatus(text,kind='ok'){$('#songbook-status').textContent=text;$('.songbook-state').className='songbook-state '+kind;}
-function renderSongbook(){const on=!!state.songbook;$('#songbook-off').hidden=on;$('#songbook-on').hidden=!on;$('#songbook-code-display').textContent=on?state.songbook.code:'';$('#engine-status').textContent=on?'Synced with the shared songbook':'Saved on this device';}
+function renderSongbook(){const on=!!state.songbook;$('#songbook-off').hidden=on;$('#songbook-on').hidden=!on;$('#songbook-code-display').textContent=on?state.songbook.code:'';$('#engine-status').textContent=on?'Synced with the shared library':'Saved on this device';}
 async function prefetchMissing(){for(const s of [...state.scores]){if(!state.songbook)return;if(s.missing?.length&&s.id!==state.active){try{await state.songbook.fetchBlobs(s);await persistLocal(s);renderLibrary();}catch(e){console.error(e);}}}}
 function onSongbookChange(changes,remoteIds){
  const {fetch,removed,added,updated}=reconcile(state.scores,changes);
@@ -218,37 +268,74 @@ function onSongbookChange(changes,remoteIds){
  renderLibrary();
 }
 async function connectSongbook(code){
- state.songbook?.stop();state.songbookReady=false;
- const songbook=createSongbook({code,onChange:onSongbookChange,onStatus:songbookStatus});state.songbook=songbook;localStorage.setItem(SONGBOOK_KEY,code);renderSongbook();
- try{await songbook.connect();}catch(e){console.error(e);songbook.stop();if(state.songbook===songbook){state.songbook=null;localStorage.removeItem(SONGBOOK_KEY);renderSongbook();}throw Error('Could not open that songbook. '+(e.code==='permission-denied'?'Check the invite link.':'Check your connection and try again.'));}
+ state.songbook?.stop();state.songbookReady=false;state.listsReady=false;
+ const songbook=createSongbook({code,onChange:onSongbookChange,onLists:onListsChange,onStatus:songbookStatus});state.songbook=songbook;localStorage.setItem(SONGBOOK_KEY,code);renderSongbook();
+ try{await songbook.connect();}catch(e){console.error(e);songbook.stop();if(state.songbook===songbook){state.songbook=null;localStorage.removeItem(SONGBOOK_KEY);renderSongbook();}throw Error('Could not open that shared library. '+(e.code==='permission-denied'?'Check the invite link.':'Check your connection and try again.'));}
 }
-async function startSongbook(){await connectSongbook(newCode());toast('Shared songbook started. Share the invite link so others can join.');}
-async function joinSongbook(text){const code=normalizeCode(text);if(!code)throw Error('That invite link or code is not valid. Paste the whole link.');if(state.songbook?.code===code)return;await connectSongbook(code);toast('Joined the shared songbook.');}
+async function startSongbook(){await connectSongbook(newCode());toast('Sharing is on. Send the invite link to whoever should see this library.');}
+async function joinSongbook(text){const code=normalizeCode(text);if(!code)throw Error('That invite link or code is not valid. Paste the whole link.');if(state.songbook?.code===code)return;await connectSongbook(code);toast('Joined the shared library.');}
 async function leaveSongbook(){
  if(!state.songbook)return;
  const button=$('#songbook-leave');
- if(button.dataset.armed!=='true'){button.dataset.armed='true';button.textContent='Tap again to leave. Scores stay in the songbook.';clearTimeout(button._disarm);button._disarm=setTimeout(()=>{button.dataset.armed='';button.textContent='Leave songbook on this device';},6000);return;}
- clearTimeout(button._disarm);button.dataset.armed='';button.textContent='Leave songbook on this device';
+ if(button.dataset.armed!=='true'){button.dataset.armed='true';button.textContent='Tap again to leave. Everything stays in the shared library.';clearTimeout(button._disarm);button._disarm=setTimeout(()=>{button.dataset.armed='';button.textContent='Leave shared library on this device';},6000);return;}
+ clearTimeout(button._disarm);button.dataset.armed='';button.textContent='Leave shared library on this device';
  state.songbook.stop();state.songbook=null;localStorage.removeItem(SONGBOOK_KEY);
  for(const s of [...state.scores]){if(s.missing?.length){state.scores.splice(state.scores.indexOf(s),1);await deleteLocal(s.id);if(s.id===state.active)state.active=null;}else{delete s.sync;await persistLocal(s);}}
+ for(const l of state.lists){delete l.synced;await persistListLocal(l);}
  if(!active()){if(state.scores.length){state.active=state.scores[0].id;state.view=hasBlob(active(),'xml')?'score':'original';await render();}else renderEmpty();}
  renderSongbook();renderLibrary();
 }
 async function shareSongbook(){
  const url=state.songbook.link();
- if(navigator.share){try{await navigator.share({title:'ScoreShift songbook',text:'Join our shared songbook in ScoreShift.',url});return;}catch(e){if(e.name==='AbortError')return;}}
- await navigator.clipboard.writeText(url);toast('Invite link copied. Send it to whoever should share this songbook.');
+ if(navigator.share){try{await navigator.share({title:'ScoreShift library',text:'Join my shared ScoreShift library.',url});return;}catch(e){if(e.name==='AbortError')return;}}
+ await navigator.clipboard.writeText(url);toast('Invite link copied. Send it to whoever should see this library.');
 }
 $('#songbook-create').onclick=safeAction(startSongbook);
 $('#songbook-join').onsubmit=safeAction(async e=>{e.preventDefault();await joinSongbook($('#songbook-code').value);$('#songbook-code').value='';});
 $('#songbook-share').onclick=safeAction(shareSongbook);$('#songbook-leave').onclick=safeAction(leaveSongbook);
+function playing(){return state.set?state.lists.find(l=>l.id===state.set.listId&&l.kind==='set')||null:null;}
+function setEntry(s=active()){const set=playing();if(!set||!s)return null;const entry=set.items[state.set.index];return entry&&entry.id===s.id?entry:null;}
+async function playSet(id,index=0){const set=state.lists.find(l=>l.id===id&&l.kind==='set');if(!set?.items.length)throw Error('Add charts to this set first.');state.set={listId:id,index};document.body.classList.add('set-mode');closeDialogs();await goToSetIndex(index,true);}
+async function goToSetIndex(index,fromStart=true){const set=playing();if(!set)return;index=Math.max(0,Math.min(set.items.length-1,index));state.set.index=index;const entry=set.items[index],s=state.scores.find(x=>x.id===entry.id);if(!s){renderSetBar();throw Error('That chart is no longer in the library. Remove it from the set.');}state.active=s.id;state.page=fromStart?1:9999;state.view=hasBlob(s,'xml')?'score':'original';renderSetBar();renderLibrary();await render();$('#canvas-area').scrollTo(0,0);}
+function exitSet(){if(!state.set)return;state.set=null;document.body.classList.remove('set-mode');renderSetBar();if(active())renderControls();renderLibrary();requestAnimationFrame(applyZoom);}
+function renderSetBar(){const set=playing();$('#set-bar').hidden=!set;if(!set)return;$('#set-position').textContent=`${set.name} · ${state.set.index+1} / ${set.items.length}`;$('#set-prev').disabled=state.set.index<=0;$('#set-next').disabled=state.set.index>=set.items.length-1;}
+async function createList(kind,name){const list=newList(kind,name);state.lists.push(list);if(kind==='book')state.book=list.id;else state.openSet=list.id;await saveList(list);renderLibrary();}
+async function savedLists(){try{const db=await database();return await new Promise((resolve,reject)=>{const req=db.transaction('lists').objectStore('lists').getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}catch{return [];}}
+async function persistListLocal(list){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('lists','readwrite');tx.objectStore('lists').put(JSON.parse(JSON.stringify(list)));tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{}}
+async function deleteListLocal(id){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('lists','readwrite');tx.objectStore('lists').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{}}
+async function saveList(list){list.updatedAt=Date.now();await persistListLocal(list);if(!state.songbook)return;try{await state.songbook.saveList(list.id,listPayload(list));list.synced=true;await persistListLocal(list);}catch(e){console.error(e);songbookStatus('Could not save to the shared library. '+(e.message||''),'error');}}
+async function deleteList(list){state.lists.splice(state.lists.indexOf(list),1);await deleteListLocal(list.id);if(state.songbook)state.songbook.removeList(list.id).catch(console.error);if(state.book===list.id)state.book='all';if(state.openSet===list.id)state.openSet=null;if(state.set?.listId===list.id)exitSet();renderLibrary();toast(`Deleted “${list.name}”.`);}
+function onListsChange(changes,remoteIds){
+ const {removed,changed}=reconcileLists(state.lists,changes);
+ for(const id of removed)deleteListLocal(id);
+ for(const id of changed){const l=state.lists.find(x=>x.id===id);if(l)persistListLocal(l);}
+ if(!state.listsReady){state.listsReady=true;for(const l of [...state.lists]){if(remoteIds.includes(l.id))continue;if(l.synced){state.lists.splice(state.lists.indexOf(l),1);deleteListLocal(l.id);}else saveList(l);}}
+ if(state.set){const set=playing();if(!set||!set.items.length)exitSet();else{state.set.index=Math.min(state.set.index,set.items.length-1);renderSetBar();if(changed.includes(set.id))safeAction(render)();}}
+ if(state.book!=='all'&&!currentBook())state.book='all';if(state.openSet&&!openSet())state.openSet=null;
+ renderLibrary();
+}
+$('#tab-books').onclick=()=>{state.tab='books';renderLibrary();};$('#tab-sets').onclick=()=>{state.tab='sets';renderLibrary();};
+$('#book-new').onsubmit=safeAction(async e=>{e.preventDefault();const name=$('#book-new-name').value.trim();if(!name)return;$('#book-new-name').value='';$('#book-new').hidden=true;await createList('book',name);});
+$('#book-new-cancel').onclick=()=>{$('#book-new').hidden=true;};
+$('#book-rename').onclick=()=>{const b=currentBook();if(!b)return;$('#book-rename-form').hidden=false;$('#book-rename-name').value=b.name;$('#book-rename-name').focus();};
+$('#book-rename-form').onsubmit=safeAction(async e=>{e.preventDefault();const b=currentBook(),name=$('#book-rename-name').value.trim();$('#book-rename-form').hidden=true;if(b&&name&&name!==b.name){b.name=name;await saveList(b);}renderLibrary();});
+$('#book-delete').onclick=safeAction(async()=>{const b=currentBook();if(b&&armed($('#book-delete'),'Tap again to delete this book (charts stay)'))await deleteList(b);});
+$('#set-new').onclick=()=>{$('#set-new-form').hidden=false;$('#set-new-name').focus();};$('#set-new-cancel').onclick=()=>{$('#set-new-form').hidden=true;};
+$('#set-new-form').onsubmit=safeAction(async e=>{e.preventDefault();const name=$('#set-new-name').value.trim();if(!name)return;$('#set-new-name').value='';$('#set-new-form').hidden=true;await createList('set',name);});
+$('#set-back').onclick=()=>{state.openSet=null;renderLibrary();};
+$('#set-name').onchange=safeAction(async e=>{const set=openSet(),name=e.target.value.trim();if(!set||!name){e.target.value=set?.name||'';return;}if(name!==set.name){set.name=name;await saveList(set);}renderLibrary();renderSetBar();});
+$('#set-play').onclick=safeAction(()=>playSet(state.openSet,state.set?.listId===state.openSet?state.set.index:0));
+$('#set-add-button').onclick=safeAction(async()=>{const set=openSet(),id=$('#set-add-select').value;if(!set||!id)return;addItem(set,id);await saveList(set);renderLibrary();});
+$('#set-delete').onclick=safeAction(async()=>{const set=openSet();if(set&&armed($('#set-delete'),'Tap again to delete this set'))await deleteList(set);});
+$('#add-set-button').onclick=safeAction(async()=>{const set=state.lists.find(l=>l.id===$('#add-set-select').value),s=active();if(!set||!s)return;addItem(set,s.id);await saveList(set);renderLibrary();toast(`Added “${scoreTitle(s)}” to “${set.name}”.`);});
+$('#set-prev').onclick=safeAction(()=>goToSetIndex(state.set.index-1,true));$('#set-next').onclick=safeAction(()=>goToSetIndex(state.set.index+1,true));$('#set-exit').onclick=exitSet;
 all('#import-top,#import-side').forEach(b=>b.onclick=()=>$('#file-input').click());
 $('#open-full').onclick=safeAction(async()=>{closeDialogs();state.page=1;await openFullTranscription();});
 $('#file-input').onchange=safeAction(async e=>{for(const f of e.target.files)await importFile(f);e.target.value='';});
 $('#xml-input').onchange=safeAction(async e=>{await importFile(e.target.files[0],true);e.target.value='';});
 $('#attach-xml').onclick=()=>$('#xml-input').click();
 for(const v of ['original','score','compare'])$('#view-'+v).onclick=safeAction(async()=>{state.view=v;closeDialogs();await render();});
-$('#step-down').onclick=safeAction(()=>setTranspose(active().semitones-1));$('#step-up').onclick=safeAction(()=>setTranspose(active().semitones+1));$('#reset').onclick=safeAction(()=>setTranspose(0,active().info.fifths));
+$('#step-down').onclick=safeAction(()=>setTranspose(resolveKey(active(),setEntry()).semitones-1));$('#step-up').onclick=safeAction(()=>setTranspose(resolveKey(active(),setEntry()).semitones+1));$('#reset').onclick=safeAction(resetTranspose);
 $('#target-key').onchange=safeAction(async e=>{const s=active(),f=Number(e.target.value);let n=mod((f-s.info.fifths)*7,12);if(n>6)n-=12;await setTranspose(n,f);});
 for(const [selector,amount]of [['#zoom-in',10],['#zoom-out',-10]])$(selector).onclick=()=>zoomBy(amount);
 $('#fit').onclick=()=>setFit('page');$('#fit-width').onclick=()=>setFit('width');$('#fit-page').onclick=()=>setFit('page');
@@ -265,13 +352,13 @@ $('#download-xml').onclick=safeAction(()=>{const s=active();if(s.recognized&&!s.
 $('#print-score').onclick=safeAction(async()=>{const s=active();if(s.recognized&&!s.reviewed)throw Error('Review the recognized score first.');$('#export-dialog').close();state.view='score';await render();await document.fonts.ready;window.print();});
 let dragDepth=0;document.addEventListener('dragenter',e=>{if(e.dataTransfer?.types.includes('Files')){e.preventDefault();dragDepth++;document.body.classList.add('drop-active');}});document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('dragleave',()=>{if(--dragDepth<=0)document.body.classList.remove('drop-active');});document.addEventListener('drop',safeAction(async e=>{e.preventDefault();dragDepth=0;document.body.classList.remove('drop-active');for(const file of e.dataTransfer.files)await importFile(file);}));
 async function init(){
- state.scores=await savedScores();
+ state.scores=await savedScores();state.lists=(await savedLists()).filter(l=>l&&l.id&&Array.isArray(l.items));
  for(const s of state.scores.filter(s=>s.id==='golden-lady-visual-excerpt'||s.visualDraft)){state.scores.splice(state.scores.indexOf(s),1);await deleteLocal(s.id);}
  const params=new URLSearchParams(location.search),joinCode=normalizeCode(params.get('library'));
  if(params.has('library')){params.delete('library');history.replaceState(null,'',location.pathname+(params.size?'?'+params:'')+location.hash);}
  renderSongbook();
  const code=joinCode||normalizeCode(localStorage.getItem(SONGBOOK_KEY));
- if(code){try{await connectSongbook(code);if(joinCode)toast('Joined the shared songbook.');}catch(e){console.error(e);toast(e.message);}}
+ if(code){try{await connectSongbook(code);if(joinCode)toast('Joined the shared library.');}catch(e){console.error(e);toast(e.message);}}
  if(!state.scores.length&&!state.songbook){const response=await fetch('/samples/golden-lady.pdf');if(!response.ok)throw Error('The sample PDF could not be loaded. Import a PDF to begin.');const s={id:'golden-lady-sample',name:'Golden Lady',kind:'pdf',bytes:new Uint8Array(await response.arrayBuffer()),pages:2,scanned:true,reviewed:false,semitones:0};state.scores=[s];await persist(s);}
  if(state.scores.length){state.active=(state.scores.find(s=>s.visualFull)||state.scores[0]).id;state.view=hasBlob(active(),'xml')?'score':'original';}
  const requestedScore=params.get('score');
