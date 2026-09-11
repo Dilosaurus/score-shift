@@ -4,9 +4,11 @@ import DOMPurify from './vendor/purify.es.mjs';
 import {parseScore,scoreInfo,transposeScore,chooseFifths,KEY_NAMES,mod} from './music.mjs';
 import {chordKinds,addHarmony} from './chords.mjs';
 import {engravingOptions,formatMusicXML,formatNotationSVG} from './engraving.mjs';
+import {createSongbook,newCode,normalizeCode,reconcile,hasBlob} from './songbook.mjs';
 pdfjs.GlobalWorkerOptions.workerSrc='/vendor/pdf.worker.mjs';
 const $=s=>document.querySelector(s),all=s=>[...document.querySelectorAll(s)];
-const state={scores:[],active:null,view:'original',zoom:100,render:0,page:1,fit:'width'};
+const state={scores:[],active:null,view:'original',zoom:100,render:0,page:1,fit:'width',songbook:null,songbookReady:false};
+const SONGBOOK_KEY='scoreshift-songbook';
 const active=()=>state.scores.find(s=>s.id===state.active);
 let enginePromise,dbPromise,toastTimer;
 const apiBase=['127.0.0.1','localhost'].includes(location.hostname)?'':'http://127.0.0.1:5173';
@@ -14,7 +16,9 @@ function toast(message){$('#toast').textContent=message;$('#toast').hidden=false
 function notice(message,error=false){$('#notice').replaceChildren();const icon=document.createElement('span');icon.textContent=error?'!':'◈';const text=document.createElement('span');text.textContent=message;$('#notice').append(icon,text);$('#notice').classList.toggle('error',error);}
 function safeAction(fn){return async(...args)=>{try{await fn(...args);}catch(e){console.error(e);toast(e.message||'Something went wrong. Please try again.');}};}
 function database(){return dbPromise??=new Promise((resolve,reject)=>{const req=indexedDB.open('scoreshift-device',1);req.onupgradeneeded=()=>req.result.createObjectStore('scores',{keyPath:'id'});req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
-async function persist(s){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('scores','readwrite');tx.objectStore('scores').put({...s,pdf:undefined,job:undefined});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{toast('This browser could not save the score. Keep this tab open or export your work.');}}
+async function persistLocal(s){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('scores','readwrite');tx.objectStore('scores').put({...s,pdf:undefined,job:undefined,dirty:undefined});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{toast('This browser could not save the score. Keep this tab open or export your work.');}}
+async function deleteLocal(id){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('scores','readwrite');tx.objectStore('scores').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{}}
+async function persist(s){await persistLocal(s);if(!state.songbook)return;s.dirty=true;state.songbook.save(s).catch(e=>{console.error(e);songbookStatus('Could not save to the songbook. '+(e.message||'Try again.'),'error');}).finally(()=>{s.dirty=false;persistLocal(s);});}
 async function savedScores(){try{const db=await database();return await new Promise((resolve,reject)=>{const req=db.transaction('scores').objectStore('scores').getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}catch{return [];}}
 async function toolkit(){return enginePromise??=Promise.all([import('./vendor/verovio-module.mjs'),import('./vendor/verovio.mjs')]).then(async([wasm,api])=>new api.VerovioToolkit(await wasm.default()));}
 function unpackScore(bytes,name='score.xml'){
@@ -67,22 +71,22 @@ async function openFullTranscription(){
 }
 function renderLibrary(){
  $('#library-list').replaceChildren();$('#score-count').textContent=state.scores.length;
- for(const s of state.scores){const button=document.createElement('button');button.className='score-item'+(s.id===state.active?' selected':'');button.setAttribute('aria-pressed',String(s.id===state.active));const icon=document.createElement('span');icon.className='file-icon';icon.textContent='♫';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=s.visualFull?'Golden Lady':s.name;sub.textContent=s.visualFull?'Complete transcription · 51 measures':s.xml?(s.recognized&&!s.reviewed?'Needs review':`${s.info.measures} measures · Editable score`):`PDF · ${s.pages} pages`;text.append(title,sub);button.append(icon,text);button.onclick=safeAction(async()=>{state.active=s.id;state.page=1;state.view=s.xml?'score':'original';closeDialogs();renderLibrary();await render();});$('#library-list').append(button);}
+ for(const s of state.scores){const row=document.createElement('div');row.className='score-item'+(s.id===state.active?' selected':'');const button=document.createElement('button');button.className='score-open';button.setAttribute('aria-pressed',String(s.id===state.active));const icon=document.createElement('span');icon.className='file-icon';icon.textContent='♫';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=s.visualFull?'Golden Lady':s.name;sub.textContent=s.visualFull?'Complete transcription · 51 measures':hasBlob(s,'xml')?(s.recognized&&!s.reviewed?'Needs review':`${s.info?.measures??'?'} measures · Editable score`):`PDF · ${s.pages||'?'} pages`;if(s.missing?.length)sub.textContent+=' · downloading';text.append(title,sub);button.append(icon,text);button.onclick=safeAction(async()=>{state.active=s.id;state.page=1;state.view=hasBlob(s,'xml')?'score':'original';closeDialogs();renderLibrary();await render();});const remove=document.createElement('button');remove.className='score-remove';remove.textContent='×';remove.setAttribute('aria-label',`Remove ${s.name}`);remove.title='Remove score';remove.onclick=safeAction(()=>removeScore(s));row.append(button,remove);$('#library-list').append(row);}
  $('#open-full').hidden=state.scores.some(s=>s.visualFull);$('#open-excerpt').hidden=state.scores.some(s=>s.visualDraft);$('.library-samples').hidden=$('#open-full').hidden&&$('#open-excerpt').hidden;
  filterLibrary();
 }
 function renderControls(){
  const s=active();if(!s)return;
  $('#score-title').textContent=s.visualFull?'Golden Lady':s.name;$('#score-subtitle').textContent=s.visualFull?'Stevie Wonder':s.visualDraft?'Four-measure excerpt':s.recognized?'Transcription · needs review':s.xml?'Editable score':'Original PDF';
- const editable=!!s.xml;$('#original-key').textContent=editable?s.info.keyName:'Awaiting recognition';
+ const editable=hasBlob(s,'xml'),hasPdf=hasBlob(s,'bytes');$('#original-key').textContent=editable?s.info.keyName:'Awaiting recognition';
  $('#current-key').textContent=editable?KEY_NAMES[s.targetFifths??s.info.fifths]?.[s.info.minor?1:0]:'Key';$('#transpose-open').disabled=!editable;$('#transpose-open').classList.toggle('changed',!!s.semitones);$('#source-label').textContent=state.view==='original'?'Original PDF':state.view==='compare'?'Compare':'Transcription';
  $('#target-key').replaceChildren();if(editable){for(const [fifths,names] of Object.entries(KEY_NAMES).sort((a,b)=>Number(a[0])-Number(b[0]))){const option=document.createElement('option');option.value=fifths;option.textContent=names[s.info.minor?1:0]+' '+(s.info.minor?'minor':'major');$('#target-key').append(option);}$('#target-key').value=s.targetFifths??s.info.fifths;}else{const o=document.createElement('option');o.textContent='Choose a key';$('#target-key').append(o);}
  for(const selector of ['#target-key','#step-down','#step-up','#reset'])$(selector).disabled=!editable;
  $('#step-down').disabled=!editable||s.semitones<=-24;$('#step-up').disabled=!editable||s.semitones>=24;
  $('#semitones').textContent=s.semitones>0?'+'+s.semitones:s.semitones||0;$('#interval-caption').textContent=s.semitones?`${Math.abs(s.semitones)} semitone${Math.abs(s.semitones)===1?'':'s'} ${s.semitones>0?'up':'down'}`:'Original pitch';
- $('#view-original').disabled=!s.bytes;$('#view-score').disabled=!editable;$('#view-compare').disabled=!editable||!s.bytes;
+ $('#view-original').disabled=!hasPdf;$('#view-score').disabled=!editable;$('#view-compare').disabled=!editable||!hasPdf;
  ['original','score','compare'].forEach(v=>{const b=$('#view-'+v);b.classList.toggle('active',state.view===v);b.setAttribute('aria-pressed',String(state.view===v));});
- $('#recognize').hidden=editable||!s.bytes;$('#recognize').disabled=!!s.job;$('#recognize').textContent=s.job?'Recognizing…':'◈ Recognize music';$('#recognize').classList.toggle('busy',!!s.job);
+ $('#recognize').hidden=editable||!hasPdf;$('#recognize').disabled=!!s.job;$('#recognize').textContent=s.job?'Recognizing…':'◈ Recognize music';$('#recognize').classList.toggle('busy',!!s.job);
  $('#attach-xml').textContent=editable?'Replace editable MusicXML':'Import matching MusicXML';
  $('#import-title').textContent=s.job?'Reading the music…':editable?s.recognized?'Review required':'Score ready':s.scanned?'Scan imported':'PDF imported';
  $('#import-description').textContent=s.job?s.job.stage:editable?`${s.info.notes} notes · ${s.info.chords} chord symbols · ${s.info.measures} measures${s.recognized?'. Check notes, rhythms, and missing chords against the original.':'. Ready to transpose.'}`:'All pages are preserved. Music recognition turns the printed notes into an editable score.';
@@ -97,8 +101,11 @@ function renderControls(){
  else if(editable)notice(state.view==='original'&&s.semitones?'The original PDF is unchanged. Open Editable score to see the transposition.':`Notes and chord symbols transpose together. ${s.semitones?'The editable score is in your selected key.':'Choose a key or change the semitone interval.'}`);
  else notice('Your original, preserved. Recognize the scan or import matching MusicXML to start transposing.');
 }
+function renderEmpty(){state.render++;$('#score-title').textContent='No score open';$('#score-subtitle').textContent='Import a PDF or MusicXML file';$('#pdf-pages').replaceChildren();$('#notation-pages').replaceChildren();$('#transpose-open').disabled=true;$('#page-label').textContent='0 / 0';$('#page-prev').disabled=$('#page-next').disabled=true;$('#reader-loading').hidden=true;$('#canvas-area').classList.remove('loading');}
 async function render(){
- const s=active();if(!s)return;const epoch=++state.render;renderControls();$('#canvas-area').classList.toggle('compare',state.view==='compare');$('#original-pane').hidden=state.view==='score';$('#editable-pane').hidden=state.view==='original';$('#reader-loading').hidden=false;$('#canvas-area').classList.add('loading');
+ const s=active();if(!s){renderEmpty();return;}const epoch=++state.render;
+ if(s.missing?.length){$('#reader-loading').hidden=false;try{await state.songbook?.fetchBlobs(s);}catch(e){console.error(e);toast(e.message);}if(epoch!==state.render)return;await persistLocal(s);renderLibrary();}
+ renderControls();$('#canvas-area').classList.toggle('compare',state.view==='compare');$('#original-pane').hidden=state.view==='score';$('#editable-pane').hidden=state.view==='original';$('#reader-loading').hidden=false;$('#canvas-area').classList.add('loading');
  try{
  if(state.view!=='score'){
   const doc=await loadPdf(s);if(epoch!==state.render)return;const target=$('#pdf-pages');target.replaceChildren();
@@ -193,6 +200,53 @@ async function saveReview(){
  }
  s.xml=xml;s.info=scoreInfo(parseScore(xml));s.semitones=0;s.targetFifths=s.info.fifths;s.reviewed=!s.recognized;s.userEdited=true;await persist(s);$('#review-dialog').close();renderLibrary();await render();toast('Corrections saved at the original pitch.');
 }
+async function removeScore(s){
+ const name=s.visualFull?'Golden Lady':s.name;
+ if(!confirm(state.songbook?`Remove “${name}” from the shared songbook? It disappears for everyone.`:`Remove “${name}” from this device?`))return;
+ state.scores.splice(state.scores.indexOf(s),1);await deleteLocal(s.id);
+ if(state.songbook)state.songbook.remove(s.id).catch(e=>{console.error(e);toast('Could not remove it from the songbook. '+(e.message||''));});
+ if(state.active===s.id){if(state.scores.length){state.active=state.scores[0].id;state.page=1;state.view=hasBlob(active(),'xml')?'score':'original';await render();}else{state.active=null;renderEmpty();}}
+ renderLibrary();toast(`Removed “${name}”.`);
+}
+function songbookStatus(text,kind='ok'){$('#songbook-status').textContent=text;$('.songbook-state').className='songbook-state '+kind;}
+function renderSongbook(){const on=!!state.songbook;$('#songbook-off').hidden=on;$('#songbook-on').hidden=!on;$('#songbook-code-display').textContent=on?state.songbook.code:'';$('#engine-status').textContent=on?'Synced with the shared songbook':'Saved on this device';}
+async function prefetchMissing(){for(const s of [...state.scores]){if(!state.songbook)return;if(s.missing?.length&&s.id!==state.active){try{await state.songbook.fetchBlobs(s);await persistLocal(s);renderLibrary();}catch(e){console.error(e);}}}}
+function onSongbookChange(changes,remoteIds){
+ const {fetch,removed,added,updated}=reconcile(state.scores,changes);
+ for(const id of removed)deleteLocal(id);
+ for(const id of [...added,...updated]){const s=state.scores.find(x=>x.id===id);if(s)persistLocal(s);}
+ if(!state.songbookReady){
+  state.songbookReady=true;
+  for(const s of [...state.scores]){if(remoteIds.includes(s.id))continue;if(s.sync){state.scores.splice(state.scores.indexOf(s),1);deleteLocal(s.id);if(s.id===state.active)state.active=null;}else persist(s);}
+  prefetchMissing();
+ }
+ const activeGone=removed.includes(state.active)||!active();
+ if(activeGone){if(state.scores.length){state.active=state.scores[0].id;state.page=1;state.view=hasBlob(active(),'xml')?'score':'original';safeAction(render)();}else{state.active=null;renderEmpty();}}
+ else if(fetch.includes(state.active)||updated.includes(state.active))safeAction(render)();
+ renderLibrary();
+}
+async function connectSongbook(code){
+ state.songbook?.stop();state.songbookReady=false;
+ const songbook=createSongbook({code,onChange:onSongbookChange,onStatus:songbookStatus});state.songbook=songbook;localStorage.setItem(SONGBOOK_KEY,code);renderSongbook();
+ try{await songbook.connect();}catch(e){console.error(e);songbook.stop();if(state.songbook===songbook){state.songbook=null;localStorage.removeItem(SONGBOOK_KEY);renderSongbook();}throw Error('Could not open that songbook. '+(e.code==='permission-denied'?'Check the invite link.':'Check your connection and try again.'));}
+}
+async function startSongbook(){await connectSongbook(newCode());toast('Shared songbook started. Share the invite link so others can join.');}
+async function joinSongbook(text){const code=normalizeCode(text);if(!code)throw Error('That invite link or code is not valid. Paste the whole link.');if(state.songbook?.code===code)return;await connectSongbook(code);toast('Joined the shared songbook.');}
+async function leaveSongbook(){
+ if(!state.songbook||!confirm('Leave this songbook on this device? The songbook keeps every score; this device keeps the copies it has downloaded.'))return;
+ state.songbook.stop();state.songbook=null;localStorage.removeItem(SONGBOOK_KEY);
+ for(const s of [...state.scores]){if(s.missing?.length){state.scores.splice(state.scores.indexOf(s),1);await deleteLocal(s.id);if(s.id===state.active)state.active=null;}else{delete s.sync;await persistLocal(s);}}
+ if(!active()){if(state.scores.length){state.active=state.scores[0].id;state.view=hasBlob(active(),'xml')?'score':'original';await render();}else renderEmpty();}
+ renderSongbook();renderLibrary();
+}
+async function shareSongbook(){
+ const url=state.songbook.link();
+ if(navigator.share){try{await navigator.share({title:'ScoreShift songbook',text:'Join our shared songbook in ScoreShift.',url});return;}catch(e){if(e.name==='AbortError')return;}}
+ await navigator.clipboard.writeText(url);toast('Invite link copied. Send it to whoever should share this songbook.');
+}
+$('#songbook-create').onclick=safeAction(startSongbook);
+$('#songbook-join').onsubmit=safeAction(async e=>{e.preventDefault();await joinSongbook($('#songbook-code').value);$('#songbook-code').value='';});
+$('#songbook-share').onclick=safeAction(shareSongbook);$('#songbook-leave').onclick=safeAction(leaveSongbook);
 all('#import-top,#import-side').forEach(b=>b.onclick=()=>$('#file-input').click());
 $('#open-excerpt').onclick=safeAction(async()=>{closeDialogs();state.page=1;await openVisualExcerpt();});
 $('#open-full').onclick=safeAction(async()=>{closeDialogs();state.page=1;await openFullTranscription();});
@@ -218,11 +272,15 @@ $('#print-score').onclick=safeAction(async()=>{const s=active();if(s.recognized&
 let dragDepth=0;document.addEventListener('dragenter',e=>{if(e.dataTransfer?.types.includes('Files')){e.preventDefault();dragDepth++;document.body.classList.add('drop-active');}});document.addEventListener('dragover',e=>e.preventDefault());document.addEventListener('dragleave',()=>{if(--dragDepth<=0)document.body.classList.remove('drop-active');});document.addEventListener('drop',safeAction(async e=>{e.preventDefault();dragDepth=0;document.body.classList.remove('drop-active');for(const file of e.dataTransfer.files)await importFile(file);}));
 async function init(){
  state.scores=await savedScores();
- if(!state.scores.length){const response=await fetch('/samples/golden-lady.pdf');if(!response.ok)throw Error('The sample PDF could not be loaded. Import a PDF to begin.');const s={id:'golden-lady-sample',name:'Golden Lady',kind:'pdf',bytes:new Uint8Array(await response.arrayBuffer()),pages:2,scanned:true,reviewed:false,semitones:0};state.scores=[s];await persist(s);}
- state.active=(state.scores.find(s=>s.visualFull)||state.scores[0]).id;state.view=active().xml?'score':'original';
- const requestedScore=new URLSearchParams(location.search).get('score');
+ const params=new URLSearchParams(location.search),joinCode=normalizeCode(params.get('library'));
+ if(params.has('library')){params.delete('library');history.replaceState(null,'',location.pathname+(params.size?'?'+params:'')+location.hash);}
+ renderSongbook();
+ const code=joinCode||normalizeCode(localStorage.getItem(SONGBOOK_KEY));
+ if(code){try{await connectSongbook(code);if(joinCode)toast('Joined the shared songbook.');}catch(e){console.error(e);toast(e.message);}}
+ if(!state.scores.length&&!state.songbook){const response=await fetch('/samples/golden-lady.pdf');if(!response.ok)throw Error('The sample PDF could not be loaded. Import a PDF to begin.');const s={id:'golden-lady-sample',name:'Golden Lady',kind:'pdf',bytes:new Uint8Array(await response.arrayBuffer()),pages:2,scanned:true,reviewed:false,semitones:0};state.scores=[s];await persist(s);}
+ if(state.scores.length){state.active=(state.scores.find(s=>s.visualFull)||state.scores[0]).id;state.view=hasBlob(active(),'xml')?'score':'original';}
+ const requestedScore=params.get('score');
  if(requestedScore==='golden-lady-full')await openFullTranscription();else if(requestedScore==='ai-excerpt')await openVisualExcerpt();else{renderLibrary();await render();}
- $('#engine-status').textContent='Saved on this device';
  if(document.modelContext?.registerTool){try{document.modelContext.registerTool({name:'transpose_active_score',title:'Transpose active score',description:'Change notes and chord symbols of the active editable score by semitones. Does not export or modify the original PDF.',inputSchema:{type:'object',properties:{semitones:{type:'integer',minimum:-24,maximum:24}},required:['semitones'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:true},execute:async input=>{if(!input||Object.keys(input).some(k=>k!=='semitones'))throw Error('Invalid input');await setTranspose(input.semitones);return {title:active().name,semitones:active().semitones,targetKey:$('#target-key').selectedOptions[0].textContent};}});}catch(e){console.warn('WebMCP unavailable',e);}}
 }
 safeAction(init)();

@@ -7,7 +7,7 @@ import {randomUUID} from 'node:crypto';
 const root=path.resolve('dist'), jobsRoot=path.resolve('.runtime/jobs');
 const engine=process.env.AUDIVERIS_PATH||path.resolve('.runtime/engine/Audiveris/Audiveris.exe');
 const port=Number(process.env.PORT||5173),jobs=new Map();
-const allowedOrigins=new Set([`http://127.0.0.1:${port}`,`http://localhost:${port}`,'https://score-shift-chris.wise-mite-5926.chatgpt.site',process.env.SCORESHIFT_ORIGIN].filter(Boolean));
+const allowedOrigins=new Set([`http://127.0.0.1:${port}`,`http://localhost:${port}`,'https://score-shift-chris.wise-mite-5926.chatgpt.site','https://scoreshift-reader.web.app','https://scoreshift-reader.firebaseapp.com',process.env.SCORESHIFT_ORIGIN].filter(Boolean));
 const types={'.html':'text/html','.css':'text/css','.mjs':'text/javascript','.js':'text/javascript','.png':'image/png','.pdf':'application/pdf','.wasm':'application/wasm','.xml':'application/xml','.musicxml':'application/xml'};
 function json(res,status,body){res.writeHead(status,{'Content-Type':'application/json','Cache-Control':'no-store'});res.end(JSON.stringify(body));}
 async function walk(folder){const entries=await fsp.readdir(folder,{withFileTypes:true});return(await Promise.all(entries.map(e=>e.isDirectory()?walk(path.join(folder,e.name)):path.join(folder,e.name)))).flat();}

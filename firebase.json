@@ -1,0 +1,11 @@
+{
+  "hosting": {
+    "public": "dist",
+    "ignore": ["**/.*"],
+    "headers": [
+      { "source": "**/*.wasm", "headers": [{ "key": "Content-Type", "value": "application/wasm" }] },
+      { "source": "/vendor/**", "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }] },
+      { "source": "**/*.@(mjs|css|html)", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    ]
+  }
+}

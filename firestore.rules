@@ -1,0 +1,38 @@
+rules_version = '2';
+// A songbook is addressed by a 26-character random invite code. Knowing the code is the
+// credential: anyone with the link can read and edit that songbook, nobody can list
+// songbooks or guess a code (130 bits of entropy).
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function validCode(code) {
+      return code.matches('^[a-z0-9]{26}$');
+    }
+    function scoreDoc() {
+      return request.resource.data.keys().hasAll(['name', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.updatedAt is number;
+    }
+    function chunkDoc() {
+      return request.resource.data.keys().hasAll(['field', 'index', 'total', 'data'])
+        && request.resource.data.field in ['bytes', 'xml']
+        && request.resource.data.index is int
+        && request.resource.data.total is int
+        && request.resource.data.data is bytes;
+    }
+    match /libraries/{code} {
+      allow get, create, update: if validCode(code);
+      allow list, delete: if false;
+      match /scores/{score} {
+        allow read, delete: if validCode(code);
+        allow create, update: if validCode(code) && scoreDoc();
+        match /blobs/{chunk} {
+          allow read, delete: if validCode(code);
+          allow create, update: if validCode(code) && chunkDoc();
+        }
+      }
+    }
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

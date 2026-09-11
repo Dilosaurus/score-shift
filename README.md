@@ -4,9 +4,32 @@ Sheet-music workspace with faithful multipage PDF import, local optical music re
 
 ## Complete visual transcription
 
+For another PDF, follow [Transcribing a PDF into ScoreShift without OCR](docs/VISUAL_TRANSCRIPTION.md). It includes a copyable prompt for another assistant, the measure-by-measure authoring method, validation and visual review steps, and the limits of the Golden Lady example script. This is an assistant-assisted workflow; it is separate from the app's Audiveris recognition action.
+
 Choose **Open full transcription**, or open http://127.0.0.1:5173/?score=golden-lady-full. Both supplied PDF pages have been transcribed visually into 51 written measures, with melody, 64 chord symbols, lyrics, repeats, endings, and modulations. This score was authored directly from the scan, independently of the optional OCR workflow below.
 
 The editable file is `output/golden-lady-full.musicxml`; the source map and editorial details are in `output/golden-lady-transcription-notes.md`. **Compare** displays the original PDF alongside the complete score. Two one-note tie fragments at the D.S./Coda jump are encoded in MusicXML but omitted by the current engraver. `transcribe_golden_lady.py` contains the measure-by-measure transcription data and regenerates the output files.
+
+## Hosted copy
+
+The reader is published on Firebase Hosting at https://scoreshift-reader.web.app (Firebase project `scoreshift-reader`, its own project, separate from Apex, on the free plan). Everything in `dist/` runs in the browser: PDF viewing, MusicXML import, transposition, comparison, correction tools, and export.
+
+Music recognition is the one thing the hosted copy cannot do on its own: it still calls the local server on this Windows computer. If ScoreShift is running here (`Start ScoreShift.ps1`), the hosted page can use it from this same computer; on any other device, import MusicXML instead. Running Audiveris in the cloud (Cloud Run) would need billing enabled on the project.
+
+Redeploy after changing `dist/` or `firestore.rules`:
+
+    python deploy-hosting.py           # site + rules
+    python deploy-hosting.py --rules   # rules only
+
+The script uses the local `gcloud` login (no `firebase login` needed) and reads `firebase.json` + `.firebaserc`.
+
+## Shared songbook
+
+Scores are saved in the browser (IndexedDB) on each device. To keep one library across phones, tablets, and computers, open **Library** and choose **Start a shared songbook**, then **Share invite link**. Anyone who opens the link (or pastes it into **Join**) sees the same scores, keys, and corrections, live. Removing a score removes it for everyone.
+
+The songbook lives in Firestore (`libraries/{code}/scores/{id}`), with the PDF bytes and MusicXML stored beside each score as chunked documents (`blobs/{field}.{index}`, 700 KB per chunk, SHA-256 verified on download). The invite code is the credential: 26 random characters (130 bits), never listable, enforced by `firestore.rules`. There are no accounts; keep the link private. Each device downloads every score in the songbook in the background so the library also works offline once synced.
+
+`dist/songbook.mjs` holds the sync logic (pure helpers are unit-tested in `tests/songbook.test.mjs`); `dist/firebase-config.mjs` carries the public Firebase client config. The Firebase SDK loads from `www.gstatic.com` only after a songbook is started or joined.
 
 ## Open the app
 

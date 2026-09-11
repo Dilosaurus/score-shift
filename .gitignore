@@ -5,3 +5,4 @@ tmp/
 *inspect.png
 
 .runtime/
+firebase-debug.log
