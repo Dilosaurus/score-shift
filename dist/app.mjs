@@ -16,7 +16,7 @@ function toast(message){$('#toast').textContent=message;$('#toast').hidden=false
 function notice(message,error=false){$('#notice').replaceChildren();const icon=document.createElement('span');icon.textContent=error?'!':'◈';const text=document.createElement('span');text.textContent=message;$('#notice').append(icon,text);$('#notice').classList.toggle('error',error);}
 function safeAction(fn){return async(...args)=>{try{await fn(...args);}catch(e){console.error(e);toast(e.message||'Something went wrong. Please try again.');}};}
 function database(){return dbPromise??=new Promise((resolve,reject)=>{const req=indexedDB.open('scoreshift-device',1);req.onupgradeneeded=()=>req.result.createObjectStore('scores',{keyPath:'id'});req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}
-async function persistLocal(s){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('scores','readwrite');tx.objectStore('scores').put({...s,pdf:undefined,job:undefined,dirty:undefined});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{toast('This browser could not save the score. Keep this tab open or export your work.');}}
+async function persistLocal(s){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('scores','readwrite');tx.objectStore('scores').put({...s,pdf:undefined,job:undefined,dirty:undefined,confirmRemove:undefined});tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{toast('This browser could not save the score. Keep this tab open or export your work.');}}
 async function deleteLocal(id){try{const db=await database();await new Promise((resolve,reject)=>{const tx=db.transaction('scores','readwrite');tx.objectStore('scores').delete(id);tx.oncomplete=resolve;tx.onerror=()=>reject(tx.error);});}catch{}}
 async function persist(s){await persistLocal(s);if(!state.songbook)return;s.dirty=true;state.songbook.save(s).catch(e=>{console.error(e);songbookStatus('Could not save to the songbook. '+(e.message||'Try again.'),'error');}).finally(()=>{s.dirty=false;persistLocal(s);});}
 async function savedScores(){try{const db=await database();return await new Promise((resolve,reject)=>{const req=db.transaction('scores').objectStore('scores').getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});}catch{return [];}}
@@ -71,7 +71,7 @@ async function openFullTranscription(){
 }
 function renderLibrary(){
  $('#library-list').replaceChildren();$('#score-count').textContent=state.scores.length;
- for(const s of state.scores){const row=document.createElement('div');row.className='score-item'+(s.id===state.active?' selected':'');const button=document.createElement('button');button.className='score-open';button.setAttribute('aria-pressed',String(s.id===state.active));const icon=document.createElement('span');icon.className='file-icon';icon.textContent='♫';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=s.visualFull?'Golden Lady':s.name;sub.textContent=s.visualFull?'Complete transcription · 51 measures':hasBlob(s,'xml')?(s.recognized&&!s.reviewed?'Needs review':`${s.info?.measures??'?'} measures · Editable score`):`PDF · ${s.pages||'?'} pages`;if(s.missing?.length)sub.textContent+=' · downloading';text.append(title,sub);button.append(icon,text);button.onclick=safeAction(async()=>{state.active=s.id;state.page=1;state.view=hasBlob(s,'xml')?'score':'original';closeDialogs();renderLibrary();await render();});const remove=document.createElement('button');remove.className='score-remove';remove.textContent='×';remove.setAttribute('aria-label',`Remove ${s.name}`);remove.title='Remove score';remove.onclick=safeAction(()=>removeScore(s));row.append(button,remove);$('#library-list').append(row);}
+ for(const s of state.scores){const row=document.createElement('div');row.className='score-item'+(s.id===state.active?' selected':'');const button=document.createElement('button');button.className='score-open';button.setAttribute('aria-pressed',String(s.id===state.active));const icon=document.createElement('span');icon.className='file-icon';icon.textContent='♫';const text=document.createElement('span'),title=document.createElement('strong'),sub=document.createElement('small');title.textContent=s.visualFull?'Golden Lady':s.name;sub.textContent=s.visualFull?'Complete transcription · 51 measures':hasBlob(s,'xml')?(s.recognized&&!s.reviewed?'Needs review':`${s.info?.measures??'?'} measures · Editable score`):`PDF · ${s.pages||'?'} pages`;if(s.missing?.length)sub.textContent+=' · downloading';text.append(title,sub);button.append(icon,text);button.onclick=safeAction(async()=>{state.active=s.id;state.page=1;state.view=hasBlob(s,'xml')?'score':'original';closeDialogs();renderLibrary();await render();});if(s.confirmRemove){row.classList.add('confirming');const ask=document.createElement('div');ask.className='score-confirm';const q=document.createElement('span');q.textContent=state.songbook?`Remove “${s.visualFull?'Golden Lady':s.name}” for everyone?`:`Remove “${s.visualFull?'Golden Lady':s.name}” from this device?`;const yes=document.createElement('button');yes.className='button danger';yes.textContent='Remove';yes.onclick=safeAction(()=>removeScore(s));const no=document.createElement('button');no.className='button';no.textContent='Keep';no.onclick=()=>{delete s.confirmRemove;renderLibrary();};ask.append(q,yes,no);row.append(ask);$('#library-list').append(row);continue;}const remove=document.createElement('button');remove.className='score-remove';remove.textContent='×';remove.setAttribute('aria-label',`Remove ${s.name}`);remove.title='Remove score';remove.onclick=()=>{for(const other of state.scores)delete other.confirmRemove;s.confirmRemove=true;renderLibrary();row.querySelector('.button.danger')?.focus();};row.append(button,remove);$('#library-list').append(row);}
  $('#open-full').hidden=state.scores.some(s=>s.visualFull);$('#open-excerpt').hidden=state.scores.some(s=>s.visualDraft);$('.library-samples').hidden=$('#open-full').hidden&&$('#open-excerpt').hidden;
  filterLibrary();
 }
@@ -132,7 +132,7 @@ async function renderNotation(s,epoch=state.render){
 }
 function closeDialogs(){all('dialog[open]').forEach(d=>d.close());}
 function openPanel(id){closeDialogs();$(id).showModal();}
-function filterLibrary(){const q=$('#library-search').value.toLowerCase().trim();let count=0;all('#library-list .score-item').forEach(b=>{b.hidden=!b.textContent.toLowerCase().includes(q);if(!b.hidden)count++;});$('#library-empty').hidden=!!count;}
+function filterLibrary(){const q=$('#library-search').value.toLowerCase().trim();let count=0;all('#library-list .score-item').forEach(b=>{b.hidden=!(b.querySelector('.score-open')?.textContent||b.textContent).toLowerCase().includes(q);if(!b.hidden)count++;});$('#library-empty').hidden=!!count;}
 function updatePages(){
  const targets=state.view==='compare'?['#pdf-pages','#notation-pages']:[state.view==='original'?'#pdf-pages':'#notation-pages'];
  const count=Math.max(1,...targets.map(t=>$(t).children.length));state.page=Math.min(count,Math.max(1,state.page));
@@ -201,8 +201,7 @@ async function saveReview(){
  s.xml=xml;s.info=scoreInfo(parseScore(xml));s.semitones=0;s.targetFifths=s.info.fifths;s.reviewed=!s.recognized;s.userEdited=true;await persist(s);$('#review-dialog').close();renderLibrary();await render();toast('Corrections saved at the original pitch.');
 }
 async function removeScore(s){
- const name=s.visualFull?'Golden Lady':s.name;
- if(!confirm(state.songbook?`Remove “${name}” from the shared songbook? It disappears for everyone.`:`Remove “${name}” from this device?`))return;
+ const name=s.visualFull?'Golden Lady':s.name;delete s.confirmRemove;
  state.scores.splice(state.scores.indexOf(s),1);await deleteLocal(s.id);
  if(state.songbook)state.songbook.remove(s.id).catch(e=>{console.error(e);toast('Could not remove it from the songbook. '+(e.message||''));});
  if(state.active===s.id){if(state.scores.length){state.active=state.scores[0].id;state.page=1;state.view=hasBlob(active(),'xml')?'score':'original';await render();}else{state.active=null;renderEmpty();}}
@@ -233,7 +232,10 @@ async function connectSongbook(code){
 async function startSongbook(){await connectSongbook(newCode());toast('Shared songbook started. Share the invite link so others can join.');}
 async function joinSongbook(text){const code=normalizeCode(text);if(!code)throw Error('That invite link or code is not valid. Paste the whole link.');if(state.songbook?.code===code)return;await connectSongbook(code);toast('Joined the shared songbook.');}
 async function leaveSongbook(){
- if(!state.songbook||!confirm('Leave this songbook on this device? The songbook keeps every score; this device keeps the copies it has downloaded.'))return;
+ if(!state.songbook)return;
+ const button=$('#songbook-leave');
+ if(button.dataset.armed!=='true'){button.dataset.armed='true';button.textContent='Tap again to leave. Scores stay in the songbook.';clearTimeout(button._disarm);button._disarm=setTimeout(()=>{button.dataset.armed='';button.textContent='Leave songbook on this device';},6000);return;}
+ clearTimeout(button._disarm);button.dataset.armed='';button.textContent='Leave songbook on this device';
  state.songbook.stop();state.songbook=null;localStorage.removeItem(SONGBOOK_KEY);
  for(const s of [...state.scores]){if(s.missing?.length){state.scores.splice(state.scores.indexOf(s),1);await deleteLocal(s.id);if(s.id===state.active)state.active=null;}else{delete s.sync;await persistLocal(s);}}
  if(!active()){if(state.scores.length){state.active=state.scores[0].id;state.view=hasBlob(active(),'xml')?'score':'original';await render();}else renderEmpty();}
@@ -259,7 +261,7 @@ $('#target-key').onchange=safeAction(async e=>{const s=active(),f=Number(e.targe
 for(const [selector,amount]of [['#zoom-in',10],['#zoom-out',-10]])$(selector).onclick=()=>zoomBy(amount);
 $('#fit').onclick=()=>setFit('page');$('#fit-width').onclick=()=>setFit('width');$('#fit-page').onclick=()=>setFit('page');
 $('#recognize').onclick=safeAction(recognizeMusic);$('#export-open').onclick=()=>{closeDialogs();openExport();};$('#review-open').onclick=()=>{closeDialogs();openReview();};$('#save-review').onclick=safeAction(saveReview);
-$('#library-open').onclick=()=>openPanel('#library-dialog');$('#transpose-open').onclick=()=>openPanel('#transpose-dialog');$('#tools-open').onclick=$('#source-open').onclick=()=>openPanel('#tools-dialog');
+$('#library-open').onclick=()=>openPanel('#library-dialog');$('#library-dialog').addEventListener('close',()=>{if(state.scores.some(s=>s.confirmRemove)){for(const s of state.scores)delete s.confirmRemove;renderLibrary();}});$('#transpose-open').onclick=()=>openPanel('#transpose-dialog');$('#tools-open').onclick=$('#source-open').onclick=()=>openPanel('#tools-dialog');
 $('#library-search').oninput=filterLibrary;$('#page-prev').onclick=()=>turnPage(-1);$('#page-next').onclick=()=>turnPage(1);$('#focus-enter').onclick=()=>focusMode(true);$('#focus-exit').onclick=()=>focusMode(false);
 all('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 all('dialog').forEach(d=>d.addEventListener('click',e=>{if(e.target===d){const r=d.getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)d.close();}}));
