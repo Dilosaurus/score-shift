@@ -1,11 +1,13 @@
-// Shared songbook: one Firestore library, shared by an invite code.
-// Metadata lives in libraries/{code}/scores/{id}; PDF bytes and MusicXML are stored
-// beside it in chunked documents at libraries/{code}/scores/{id}/blobs/{field}.{index}.
-// Pure helpers are exported for tests; the Firebase SDK is only loaded by connect().
+// Shared charts: the sync layer for one band (bands/{id}) or, for migration, one legacy
+// invite-code library (libraries/{code}). Metadata lives in <root>/scores/{id}; PDF bytes and
+// MusicXML are stored beside it in chunked documents at <root>/scores/{id}/blobs/{field}.{index}.
+// A catalog reference (score.catalog set, not userEdited) syncs metadata only: its music comes
+// from hosting. Pure helpers are exported for tests; the Firebase SDK is only loaded by connect().
 import {firebaseConfig,firebaseSdkVersion} from './firebase-config.mjs';
 export const CODE_LENGTH=26,CODE_ALPHABET='abcdefghijkmnpqrstuvwxyz23456789',CHUNK_SIZE=700000;
 export const BLOB_FIELDS=['bytes','xml'];
-const META_FIELDS=['name','kind','pages','scanned','semitones','targetFifths','reviewed','recognized','warnings','visualDraft','visualFull','userEdited','sampleRevision','info'];
+const META_FIELDS=['name','kind','pages','scanned','semitones','targetFifths','reviewed','recognized','warnings','visualDraft','visualFull','userEdited','sampleRevision','info','tempo','catalog','book','composer'];
+export function syncedBlobFields(score){return score.catalog&&!score.userEdited?[]:BLOB_FIELDS;}
 export function newCode(){const values=crypto.getRandomValues(new Uint8Array(CODE_LENGTH));return[...values].map(v=>CODE_ALPHABET[v%CODE_ALPHABET.length]).join('');}
 export function normalizeCode(text){
  if(!text)return null;let value=String(text).trim();
@@ -27,11 +29,13 @@ async function loadSdk(){
  const [app,firestore]=await Promise.all([import(`${base}/firebase-app.js`),import(`${base}/firebase-firestore.js`)]);
  return{...app,...firestore};
 }
-export function createSongbook({code,onChange,onLists=()=>{},onStatus=()=>{},sdk,config=firebaseConfig}){
- if(!normalizeCode(code))throw Error('That invite code is not valid.');
+export async function connectFirestore({sdk,config=firebaseConfig}={}){const fb=sdk||await loadSdk();const app=fb.getApps().find(a=>a.name==='songbook')||fb.initializeApp(config,'songbook');return{fb,db:fb.getFirestore(app)};}
+export function createSongbook({code,band,onChange,onLists=()=>{},onStatus=()=>{},sdk,config=firebaseConfig}){
+ if(!band&&!normalizeCode(code))throw Error('That invite code is not valid.');
+ const root=band?['bands',band]:['libraries',code];
  let fb,db,unsubscribe,unsubscribeLists,firstSnapshot;const queues=new Map();
- const listRef=id=>fb.doc(db,'libraries',code,'lists',id);
- const scoresPath=()=>['libraries',code,'scores'];
+ const listRef=id=>fb.doc(db,...root,'lists',id);
+ const scoresPath=()=>[...root,'scores'];
  const scoreRef=id=>fb.doc(db,...scoresPath(),id);
  const chunkRef=(id,field,index)=>fb.doc(db,...scoresPath(),id,'blobs',`${field}.${index}`);
  function queue(id,task){const previous=queues.get(id)||Promise.resolve();const next=previous.catch(()=>{}).then(task);queues.set(id,next);next.finally(()=>{if(queues.get(id)===next)queues.delete(id);});return next;}
@@ -40,16 +44,17 @@ export function createSongbook({code,onChange,onLists=()=>{},onStatus=()=>{},sdk
   const app=fb.getApps().find(a=>a.name==='songbook')||fb.initializeApp(config,'songbook');
   db=fb.getFirestore(app);
   onStatus('Connecting…','busy');
-  await fb.setDoc(fb.doc(db,'libraries',code),{name:'Songbook',touchedAt:Date.now()},{merge:true});
+  if(!band)fb.setDoc(fb.doc(db,'libraries',code),{name:'Library',touchedAt:Date.now()},{merge:true}).catch(e=>console.error(e));
   return new Promise((resolve,reject)=>{
    firstSnapshot=resolve;
+   const timer=setTimeout(()=>{if(firstSnapshot){onStatus('Offline — changes sync when you reconnect','busy');firstSnapshot=null;resolve({online:false});}},8000);
    unsubscribe=fb.onSnapshot(fb.collection(db,...scoresPath()),{includeMetadataChanges:false},snapshot=>{
     const changes=snapshot.docChanges().map(change=>({type:change.type,id:change.doc.id,meta:change.doc.data()}));
     onChange(changes,snapshot.docs.map(d=>d.id));
     onStatus(snapshot.metadata.fromCache?'Offline — changes sync when you reconnect':'Synced','ok');
-    if(firstSnapshot){firstSnapshot();firstSnapshot=null;}
-   },error=>{console.error(error);onStatus('Could not reach the shared library. '+(error.code==='permission-denied'?'Check the invite code.':'Check your connection.'),'error');if(firstSnapshot){reject(error);firstSnapshot=null;}});
-   unsubscribeLists=fb.onSnapshot(fb.collection(db,'libraries',code,'lists'),snapshot=>{onLists(snapshot.docChanges().map(change=>({type:change.type,id:change.doc.id,meta:change.doc.data()})),snapshot.docs.map(d=>d.id));},error=>console.error(error));
+    if(firstSnapshot){clearTimeout(timer);firstSnapshot({online:true});firstSnapshot=null;}
+   },error=>{console.error(error);onStatus('Could not reach the band. '+(error.code==='permission-denied'?(band?'You are no longer a member of this band.':'Check the invite code.'):'Check your connection.'),'error');if(firstSnapshot){clearTimeout(timer);reject(error);firstSnapshot=null;}});
+   unsubscribeLists=fb.onSnapshot(fb.collection(db,...root,'lists'),snapshot=>{onLists(snapshot.docChanges().map(change=>({type:change.type,id:change.doc.id,meta:change.doc.data()})),snapshot.docs.map(d=>d.id));},error=>console.error(error));
   });
  }
  async function writeBlob(id,field,value,previousCount=0){
@@ -70,7 +75,7 @@ export function createSongbook({code,onChange,onLists=()=>{},onStatus=()=>{},sdk
   return queue(score.id,async()=>{
    onStatus('Saving…','busy');
    const blobs={...(score.sync?.blobs||{})};
-   for(const field of BLOB_FIELDS){
+   for(const field of syncedBlobFields(score)){
     if(score[field]===undefined||score[field]===null){if(blobs[field]){for(let i=0;i<blobs[field].count;i++)await fb.deleteDoc(chunkRef(score.id,field,i));delete blobs[field];}continue;}
     const hash=await digest(encodeField(field,score[field]));
     if(blobs[field]?.hash!==hash)blobs[field]=await writeBlob(score.id,field,score[field],blobs[field]?.count||0);
@@ -102,7 +107,7 @@ export function createSongbook({code,onChange,onLists=()=>{},onStatus=()=>{},sdk
  function saveList(id,payload){return fb.setDoc(listRef(id),{...payload,savedAt:fb.serverTimestamp()});}
  function removeList(id){return fb.deleteDoc(listRef(id));}
  function stop(){unsubscribe?.();unsubscribe=null;unsubscribeLists?.();unsubscribeLists=null;}
- return{code,connect,save,fetchBlobs,remove,saveList,removeList,stop,link:origin=>inviteLink(code,origin)};
+ return{code,band,root,connect,save,fetchBlobs,remove,saveList,removeList,stop,link:origin=>inviteLink(code,origin)};
 }
 // Reconcile a remote change list into the local score list. Returns the ids whose blobs must be fetched
 // and the ids that were removed. Pure so it can be unit-tested without Firestore.
@@ -115,7 +120,8 @@ export function reconcile(scores,changes){
   if(!local){const stub=applyMetadata({id:change.id},meta);stub.sync=remoteSync;stub.missing=Object.keys(blobs);scores.push(stub);added.push(change.id);if(stub.missing.length)fetch.push(change.id);continue;}
   if(local.dirty)continue;
   const localSync=local.sync||{blobs:{},updatedAt:0};
-  const changed=BLOB_FIELDS.filter(field=>(blobs[field]?.hash||null)!==(localSync.blobs?.[field]?.hash||null));
+  const reference=!!meta.catalog&&!meta.userEdited;
+  const changed=reference?[]:BLOB_FIELDS.filter(field=>(blobs[field]?.hash||null)!==(localSync.blobs?.[field]?.hash||null));
   if(!changed.length&&remoteSync.updatedAt<=localSync.updatedAt)continue;
   applyMetadata(local,meta);local.sync=remoteSync;updated.push(change.id);
   const missing=changed.filter(field=>blobs[field]);

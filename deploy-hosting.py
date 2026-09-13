@@ -90,6 +90,36 @@ def collect_files(public_dir: str) -> dict[str, tuple[bytes, str]]:
     return files
 
 
+# Files under these prefixes may be published by another machine (tools/chart on Dad's PC writes
+# /catalog/** and /samples/<book>/**). A full deploy from this checkout must not drop them just
+# because they are not in the local dist/, so live files here that are absent locally are carried
+# over by hash into the new version. Local copies still win when they exist.
+PRESERVED_PREFIXES = ("/catalog/", "/samples/")
+
+
+def live_file_map(client: Client, site_name: str) -> dict[str, str]:
+    """Return {"/path": hash} for the current live release, or {} when nothing is live yet."""
+    releases = client.call("GET", f"{API}/{site_name}/releases?pageSize=1").get("releases", [])
+    if not releases or "version" not in releases[0]:
+        return {}
+    version = releases[0]["version"]["name"]
+    result: dict[str, str] = {}
+    token = ""
+    while True:
+        page = client.call("GET", f"{API}/{version}/files?pageSize=1000" + (f"&pageToken={token}" if token else ""))
+        for entry in page.get("files", []):
+            if entry.get("status") == "ACTIVE" and not entry["path"].startswith("/__/"):
+                result[entry["path"]] = entry["hash"]
+        token = page.get("nextPageToken", "")
+        if not token:
+            return result
+
+
+def preserved_live_files(live: dict[str, str], local_paths) -> dict[str, str]:
+    local = set(local_paths)
+    return {p: h for p, h in live.items() if p.startswith(PRESERVED_PREFIXES) and p not in local}
+
+
 def version_config(hosting: dict) -> dict:
     config: dict = {}
     headers = []
@@ -133,6 +163,16 @@ def deploy_firestore_rules(client: Client, project: str) -> None:
     print(f"firestore rules released: {ruleset['name'].rsplit('/', 1)[-1]}")
 
 
+def publish_charts() -> None:
+    """Push approved Real Book charts into the shared library (tools/publish-charts.mjs); never fatal."""
+    script = os.path.join(HERE, "tools", "publish-charts.mjs")
+    if not os.path.exists(script) or not os.path.exists(os.path.join(HERE, "library.local.json")):
+        print("chart publish skipped (no tools/publish-charts.mjs or library.local.json)")
+        return
+    r = subprocess.run(["node", script], cwd=HERE, capture_output=True, text=True)
+    print((r.stdout or r.stderr).strip()[-600:])
+
+
 def main() -> None:
     dry_run = "--dry-run" in sys.argv
     rules_only = "--rules" in sys.argv
@@ -152,6 +192,10 @@ def main() -> None:
     client = Client(access_token(), project)
     site_name = ensure_site(client, project, site)
 
+    carried = preserved_live_files(live_file_map(client, site_name), files)
+    if carried:
+        print(f"{len(carried)} live catalog/sample files not in this checkout are carried over unchanged")
+
     version = client.call("POST", f"{API}/{site_name}/versions", {"config": version_config(hosting)})
     version_name = version["name"]
     print(f"version {version_name}")
@@ -159,9 +203,11 @@ def main() -> None:
     populate = client.call(
         "POST",
         f"{API}/{version_name}:populateFiles",
-        {"files": {path: digest for path, (_, digest) in files.items()}},
+        {"files": {**carried, **{path: digest for path, (_, digest) in files.items()}}},
     )
     required = set(populate.get("uploadRequiredHashes", []))
+    if not required.issubset({digest for _, digest in files.values()}):
+        raise SystemExit("Hosting asked for bytes of a carried-over live file; the live version is inconsistent. Aborting before release.")
     upload_url = populate["uploadUrl"]
     print(f"{len(required)} of {len(files)} files need upload")
     by_hash = {digest: gz for gz, digest in files.values()}
@@ -174,6 +220,7 @@ def main() -> None:
     release = client.call("POST", f"{API}/{site_name}/releases?versionName={version_name}", {})
     print(f"released {release['name']}")
     deploy_firestore_rules(client, project)
+    publish_charts()
     print(f"live: https://{site}.web.app")
 
 

@@ -73,6 +73,7 @@ Create a table mapping `page → system → written measure numbers`. Include pi
 For each system, establish the active clef, key signature, time signature, and any changes before recording the notes. Then make separate passes for pitches/rhythms, harmonies, and lyrics/directions.
 
 - Record each pitch's letter, alteration, and octave. Work from staff position, clef, key signature, and written accidentals. Reassess accidental state at barlines and key changes.
+- Record source courtesy accidentals and their parentheses explicitly. Follow [COURTESY_ACCIDENTALS.md](COURTESY_ACCIDENTALS.md) and check the reader's additional reminder marks in all reviewed keys; courtesy symbols must never change sounding pitches.
 - Record note and rest durations, dots, beams, tuplets, and ties. Distinguish a tie between equal pitches from a slur over a phrase.
 - Record the beat of each chord change, including changes between beats. Preserve root spelling, chord quality/extensions, and slash bass separately.
 - Attach lyric syllables to the corresponding notes and keep verse numbers. Leave a source abbreviation or missing syllable explicit.

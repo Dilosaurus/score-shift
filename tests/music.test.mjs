@@ -1,7 +1,7 @@
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {DOMParser,XMLSerializer} from '@xmldom/xmldom';
-import {parseScore,scoreInfo,transposeScore,chooseFifths} from '../dist/music.mjs';
+import {parseScore,scoreInfo,transposeScore,chooseFifths,refreshAccidentals} from '../dist/music.mjs';
 import createVerovioModule from 'verovio/wasm';
 import {VerovioToolkit} from 'verovio/esm';
 import {parseChord,addHarmony} from '../dist/chords.mjs';
@@ -23,6 +23,23 @@ test('supports enharmonic target keys',()=>{const c=fixture.replace('<fifths>-3<
 test('rejects unsafe or unsupported XML and bad intervals',()=>{assert.throws(()=>parse('<hello/>'));assert.throws(()=>parse('<!ENTITY x SYSTEM "file:///etc/passwd"><score-partwise/>'));assert.throws(()=>trans(fixture,25));assert.throws(()=>trans(fixture,1,0));});
 test('real engraving engine renders original and transposed notes and harmonies',async()=>{const vrv=new VerovioToolkit(await createVerovioModule());vrv.setOptions({inputFrom:'xml',pageWidth:2100,pageHeight:2970,scale:42});assert.ok(vrv.loadData(trans(fixture,2)));const svg=vrv.renderToSVG(1);assert.match(svg,/class="note"/);assert.match(svg,/class="harm"/);assert.equal(vrv.getPageCount(),1);const mei=vrv.getMEI();assert.match(mei,/pname="f"/);assert.match(mei,/pname="c"/);assert.match(mei,/sig="1f"/);vrv.destroy();});
 test('minor mode retained and spelling chosen by key',()=>{const xml=fixture.replace('<mode>major</mode>','<mode>minor</mode>');const d=parse(trans(xml,2));assert.equal(scoreInfo(d).keyName,'D minor');assert.equal(chooseFifths(-3,0),-3);});
+test('chromatic notes retain visible accidentals after transposition and engraving',async()=>{
+ const xml=readFileSync(new URL('../output/real-book-tests/airegin/airegin.musicxml',import.meta.url),'utf8');
+ const originalNotes=els(parse(xml),'note'),displayNotes=els(parse(trans(xml,0)),'note');
+ originalNotes.forEach((note,i)=>{if(els(note,'accidental').length)assert.deepEqual(txt(displayNotes[i],'accidental'),txt(note,'accidental'));});
+ const shifted=trans(xml,2),measure=els(parse(shifted),'measure')[1];
+ assert.deepEqual(txt(measure,'accidental'),['flat']); // G-flat -> A-flat in G minor.
+ const vrv=new VerovioToolkit(await createVerovioModule());vrv.setOptions({inputFrom:'xml'});assert.ok(vrv.loadData(shifted));
+ const mei=new DOMParser().parseFromString(vrv.getMEI(),'application/xml'),m=els(mei,'measure').find(m=>m.getAttribute('n')==='2');
+ assert.ok(els(m,'accid').some(a=>a.getAttribute('accid')==='f'),'engraver must receive a displayed flat, not just sounding pitch');vrv.destroy();
+});
+test('accidental state follows musical time across backup voices and resets at barlines',()=>{
+ const n=(alter,duration=4)=>`<note><pitch><step>F</step>${alter?`<alter>${alter}</alter>`:''}<octave>4</octave></pitch><duration>${duration}</duration><type>quarter</type></note>`;
+ const xml=`<score-partwise><part-list><score-part id="P1"><part-name>Test</part-name></score-part></part-list><part id="P1"><measure number="1"><attributes><divisions>4</divisions><key><fifths>0</fifths></key></attributes>${n(1)}${n(0)}<backup><duration>8</duration></backup>${n(1)}</measure><measure number="2">${n(1)}${n(1)}</measure></part></score-partwise>`;
+ const d=refreshAccidentals(parse(xml)),measures=els(d,'measure');
+ assert.deepEqual(els(measures[0],'note').map(note=>txt(note,'accidental')), [['sharp'],['natural'],[]]);
+ assert.deepEqual(els(measures[1],'note').map(note=>txt(note,'accidental')), [['sharp'],[]]);
+});
 test('missing chords can be added at a beat and transpose with the melody',()=>{const d=parse(fixture),measure=els(d,'measure')[0];addHarmony(d,measure,'Cm7/G',3,4);const result=parse(trans(new XMLSerializer().serializeToString(d),2));assert.deepEqual(txt(result,'root-step'),['F','D']);assert.deepEqual(txt(result,'bass-step'),['C','A']);assert.deepEqual(txt(result,'offset'),['8']);assert.equal(parseChord('Abmaj7').kind,'major-seventh');assert.throws(()=>parseChord('not-a-chord'));});
 
 test('complete Golden Lady score retains every bar, chord, and modulation when transposed',()=>{

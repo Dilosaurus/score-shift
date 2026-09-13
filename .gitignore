@@ -6,3 +6,17 @@ tmp/
 
 .runtime/
 firebase-debug.log
+library.local.json
+
+# tools/chart working files: page images, crops and review renders are rebuilt on demand.
+charts/**/source/*.png
+charts/**/source/crops/
+charts/**/source/systems/
+charts/**/renders/
+charts/.publish/
+tools/chart/tests/fixtures/**/renders/
+__pycache__/
+tools/chart/tests/fixtures/**/*.musicxml
+tools/chart/tests/fixtures/**/*.mxl
+tools/chart/tests/fixtures/**/source.pdf
+tools/chart/tests/fixtures/**/verification.json

@@ -49,3 +49,15 @@ test('reconcile adds remote scores as stubs that need their blobs, applies newer
  result=reconcile(scores,[{type:'removed',id:'shared',meta:{}},{type:'removed',id:'never-here',meta:{}}]);
  assert.deepEqual(result.removed,['shared']);assert.deepEqual(scores.map(s=>s.id),['local-only','new']);
 });
+
+test('a catalog reference syncs metadata only and keeps the music it fetched from hosting',async()=>{
+ const {syncedBlobFields}=await import('../dist/songbook.mjs');
+ assert.deepEqual(syncedBlobFields({id:'visual-x',catalog:'x'}),[]);
+ assert.deepEqual(syncedBlobFields({id:'visual-x',catalog:'x',userEdited:true}),['bytes','xml']);
+ assert.deepEqual(syncedBlobFields({id:'mine'}),['bytes','xml']);
+ const scores=[{id:'visual-x',name:'X',catalog:'x',xml:'<score/>',bytes:new Uint8Array(2),sync:{blobs:{},updatedAt:1}}];
+ const result=reconcile(scores,[{type:'modified',id:'visual-x',meta:{name:'X',catalog:'x',semitones:2,blobs:{},updatedAt:9}}]);
+ assert.deepEqual(result,{fetch:[],removed:[],added:[],updated:['visual-x']});
+ assert.equal(scores[0].xml,'<score/>');assert.equal(scores[0].bytes.length,2);assert.equal(scores[0].semitones,2);
+ assert.equal(metadataOf({id:'v',name:'V',catalog:'x',book:'real-book',composer:'C'}).catalog,'x');
+});

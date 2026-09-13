@@ -1,11 +1,50 @@
 rules_version = '2';
-// A songbook is addressed by a 26-character random invite code. Knowing the code is the
-// credential: anyone with the link can read and edit that songbook, nobody can list
-// songbooks or guess a code (130 bits of entropy).
+// ScoreShift bands. A person signs in (Google or email link). A band is the shared space a
+// group plays from: only its members can read or write its charts, books and sets. Anyone who
+// knows a band's 26-character invite code can join it (the code is the secret: 130 bits, never
+// listable). The owner can rotate the invite and remove members.
+//
+// The older invite-code libraries (libraries/{code}) stay readable and writable by code so a
+// band can claim one and the chart publisher keeps working until it moves to the catalog model.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    function isUser(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
     function validCode(code) {
       return code.matches('^[a-z0-9]{26}$');
+    }
+    function bandPath(band) {
+      return /databases/$(database)/documents/bands/$(band);
+    }
+    function isMember(band) {
+      return signedIn() && exists(/databases/$(database)/documents/bands/$(band)/members/$(request.auth.uid));
+    }
+    function isOwner(band) {
+      return signedIn() && get(bandPath(band)).data.owner == request.auth.uid;
+    }
+    function inviteOpens(band, code) {
+      return code is string && validCode(code)
+        && get(/databases/$(database)/documents/invites/$(code)).data.band == band;
+    }
+    function bandDoc() {
+      return request.resource.data.keys().hasAll(['name', 'owner', 'invite', 'createdAt', 'updatedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() >= 1 && request.resource.data.name.size() <= 60
+        && request.resource.data.owner is string
+        && validCode(request.resource.data.invite)
+        && request.resource.data.createdAt is number
+        && request.resource.data.updatedAt is number;
+    }
+    function memberDoc() {
+      return request.resource.data.keys().hasAll(['name', 'role', 'joinedAt'])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() <= 60
+        && request.resource.data.role in ['owner', 'member']
+        && request.resource.data.joinedAt is number;
     }
     function scoreDoc() {
       return request.resource.data.keys().hasAll(['name', 'updatedAt'])
@@ -27,6 +66,59 @@ service cloud.firestore {
         && request.resource.data.items is list
         && request.resource.data.updatedAt is number;
     }
+
+    // The person: their own profile and the list of bands they belong to.
+    match /users/{uid} {
+      allow read, write: if isUser(uid);
+    }
+
+    // An invite code resolves to a band. Readable by any signed-in person who knows the code;
+    // only the band's owner can mint or retire one.
+    match /invites/{code} {
+      allow get: if signedIn() && validCode(code);
+      allow list: if false;
+      allow create: if signedIn() && validCode(code)
+        && request.resource.data.keys().hasAll(['band', 'createdBy', 'createdAt'])
+        && request.resource.data.createdBy == request.auth.uid
+        && isOwner(request.resource.data.band);
+      allow update: if false;
+      allow delete: if signedIn() && isOwner(resource.data.band);
+    }
+
+    match /bands/{band} {
+      allow get: if isMember(band);
+      // A query constrained to owner == the signed-in person; nothing else can be listed.
+      allow list: if signedIn() && resource.data.owner == request.auth.uid;
+      allow create: if signedIn() && bandDoc() && request.resource.data.owner == request.auth.uid;
+      allow update: if isOwner(band) && request.resource.data.owner == resource.data.owner;
+      allow delete: if isOwner(band);
+
+      // Joining writes your own member document: the owner right after creating the band,
+      // anyone else by presenting an invite code that opens this band.
+      match /members/{member} {
+        allow read: if isMember(band);
+        allow create: if isUser(member) && memberDoc()
+          && ((request.resource.data.role == 'owner' && isOwner(band))
+              || (request.resource.data.role == 'member' && inviteOpens(band, request.resource.data.invite)));
+        allow update: if isUser(member) && memberDoc() && request.resource.data.role == resource.data.role;
+        allow delete: if isUser(member) || isOwner(band);
+      }
+      match /lists/{list} {
+        allow read, delete: if isMember(band);
+        allow create, update: if isMember(band) && listDoc();
+      }
+      match /scores/{score} {
+        allow read, delete: if isMember(band);
+        allow create, update: if isMember(band) && scoreDoc();
+        match /blobs/{chunk} {
+          allow read, delete: if isMember(band);
+          allow create, update: if isMember(band) && chunkDoc();
+        }
+      }
+    }
+
+    // Legacy invite-code libraries (before bands). Kept so a band can claim one and so the
+    // chart publisher keeps working until it is retired.
     match /libraries/{code} {
       allow get, create, update: if validCode(code);
       allow list, delete: if false;
