@@ -29,8 +29,11 @@ Google Cloud project `scoreshift-reader`.
 4. Deploy the app once from this checkout (`gcloud auth login`, then `python deploy-hosting.py`)
    so the live app has the catalog loader that shows extra books. Until that deploy, charts Dad
    publishes are on the site but the app does not list them.
-5. Push this repo to GitHub (private, under your own account) and send Dad the clone URL and
-   collaborator invite.
+5. Send Dad the project. No GitHub account needed on his side: from this folder run
+   `git archive --format=zip -o ..\ScoreShift.zip HEAD` and send him the zip (about 30 MB).
+   Updates later are a new zip; his `charts\` and `books\` folders are his and survive a
+   copy-over. (A collaborator invite to https://github.com/Dilosaurus/score-shift works too if
+   he ever wants one.)
 
 ## B. Dad: set up the PC (about twenty minutes, once)
 
@@ -40,7 +43,6 @@ with `#` are comments.
 ### 1. Install the tools
 
 ```powershell
-winget install --id Git.Git -e
 winget install --id OpenJS.NodeJS.LTS -e
 winget install --id Python.Python.3.12 -e
 winget install --id Google.CloudSDK -e
@@ -52,12 +54,16 @@ route works once Node is installed) and sign in with your own Claude account.
 
 ### 2. Get the project
 
+No GitHub account needed. Chris sends `ScoreShift.zip`. Right-click it → **Extract All…** and
+choose your `Documents` folder, so you end up with `Documents\ScoreShift`. Then:
+
 ```powershell
-cd ~\Documents
-git clone https://github.com/Dilosaurus/score-shift.git ScoreShift
-cd ScoreShift
+cd ~\Documents\ScoreShift
 .\setup-dad.ps1
 ```
+
+(If you ever do get a GitHub account and Chris adds you to the repo, `git clone
+https://github.com/Dilosaurus/score-shift.git ScoreShift` does the same and keeps history.)
 
 `setup-dad.ps1` installs the exact JavaScript and Python dependencies and runs the test suite.
 It prints `ready` at the end.

@@ -8,7 +8,9 @@ function Need($name, $hint) {
 Need node   'Install Node.js LTS: winget install --id OpenJS.NodeJS.LTS -e'
 Need npm    'Install Node.js LTS: winget install --id OpenJS.NodeJS.LTS -e'
 Need python 'Install Python: winget install --id Python.Python.3.12 -e'
-Need git    'Install Git: winget install --id Git.Git -e'
+if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+  Write-Warning 'git is not installed. Fine for transcribing and publishing; install it later if you want version history (winget install --id Git.Git -e).'
+}
 if (-not (Get-Command gcloud -ErrorAction SilentlyContinue)) {
   Write-Warning 'gcloud is not installed yet (winget install --id Google.CloudSDK -e). Transcribing works without it; publishing does not.'
 }

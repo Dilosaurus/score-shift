@@ -92,13 +92,16 @@ says the live site changed mid-publish, just run it again. It ends by fetching t
 files back and comparing bytes; report that result. The chart appears in the app under
 Catalog → the book's chip within a minute (reload the app).
 
-Then commit the work by name:
+Then, if this folder is a git repository (`git status` works), commit the work by name:
 
 ```
 git add charts/<book>/<id> books/<book>.json
 git commit -m "Transcribe <Title> into <book>"
-git push
+git push        # only when a remote is configured; skip silently otherwise
 ```
+
+If it is not a git repository (the project came as a zip), skip this step; the chart is safe in
+`charts/<book>/<id>/` and on the live site.
 
 ## 5. Tell the person what you did
 
