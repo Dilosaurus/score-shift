@@ -1,0 +1,185 @@
+{
+  "id": "example-book-porch-light",
+  "book": "example-book",
+  "title": "Porch Light",
+  "composer": "Fixture (original tune for the pipeline tests)",
+  "source": {
+    "file": "source.pdf",
+    "sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+    "pages": 1
+  },
+  "divisions": 12,
+  "key": -1,
+  "mode": "major",
+  "time": "4/4",
+  "clef": "G",
+  "tempo": 132,
+  "feel": "Medium swing",
+  "measures": [
+    {
+      "pickup": true,
+      "notes": "C4:e D4:e",
+      "chords": []
+    },
+    {
+      "section": "A",
+      "repeat": "start",
+      "system": true,
+      "notes": "F4:q A4:q C5:h",
+      "chords": [
+        "Fmaj7"
+      ],
+      "lyrics": [
+        "Porch|light|on"
+      ],
+      "segno": true
+    },
+    {
+      "notes": "Bb4:q A4:q G4:h:>",
+      "chords": [
+        "Gm7",
+        "C7@3"
+      ],
+      "lyrics": [
+        "af-|ter|dark"
+      ]
+    },
+    {
+      "notes": "G4:h:< r:q F4:g A4:q",
+      "chords": [
+        "Am7",
+        "D7b9@3"
+      ],
+      "lyrics": [
+        "_||wait-|ing"
+      ]
+    },
+    {
+      "notes": "G4:et A4:et Bb4:et A4:q G4:h",
+      "chords": [
+        "Gm7",
+        "C7sus4@3"
+      ],
+      "slurs": [
+        [
+          0,
+          2
+        ]
+      ],
+      "lyrics": [
+        "for|the|last|train|home"
+      ]
+    },
+    {
+      "notes": "F4:q A4:q C5:q D5:q",
+      "chords": [
+        "F6/A",
+        "N.C.@3"
+      ],
+      "lyrics": [
+        "Ev-|ery|win-|dow"
+      ]
+    },
+    {
+      "notes": "Eb5:q:acc D5:q C5:h",
+      "chords": [
+        "Bb7",
+        "Bbm6@3"
+      ],
+      "lyrics": [
+        "glows|for|you"
+      ]
+    },
+    {
+      "ending": "1",
+      "notes": "A4:h G4:h",
+      "chords": [
+        "Am7",
+        "D7@3"
+      ],
+      "lyrics": [
+        "come|on"
+      ]
+    },
+    {
+      "repeat": "end",
+      "notes": "G4:h:> G4:h:<",
+      "chords": [
+        "Gm7",
+        "C7@3"
+      ],
+      "lyrics": [
+        "home|_"
+      ]
+    },
+    {
+      "ending": "2",
+      "notes": "A4:h F4:h",
+      "chords": [
+        "Am7",
+        "Abdim7@3"
+      ],
+      "lyrics": [
+        "come|on"
+      ]
+    },
+    {
+      "double": true,
+      "notes": "F4:w:fer",
+      "chords": [
+        "Gm7",
+        "C7@3"
+      ],
+      "lyrics": [
+        "home"
+      ]
+    },
+    {
+      "section": "B",
+      "key": 1,
+      "system": true,
+      "notes": "x:q x:q x:q x:q",
+      "chords": [
+        "G6",
+        "/@3"
+      ]
+    },
+    {
+      "notes": "x:q x:q x:q x:q",
+      "chords": [
+        "Am7",
+        "D7@3"
+      ],
+      "to_coda": true
+    },
+    {
+      "notes": "D5:s E5:s F#5:e G5:q A5:qt G5:qt F#5:qt",
+      "chords": [
+        "Gmaj7",
+        "Em9@3"
+      ]
+    },
+    {
+      "notes": "E5:dq D5:e B4:h",
+      "chords": [
+        "Am11",
+        "D7#5@3"
+      ],
+      "ds": "D.S. al Coda"
+    },
+    {
+      "coda": true,
+      "system": true,
+      "notes": "G5:h:stacc r:h",
+      "voice2": "B4:h r:h",
+      "chords": [
+        "Gmaj7"
+      ],
+      "final": true
+    }
+  ],
+  "review": {
+    "source_checked": false,
+    "unresolved": []
+  }
+}
